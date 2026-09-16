@@ -12,6 +12,19 @@ model User {
   name      String?
   createdAt DateTime  @default(now())
   projects  Project[]
+
+  driveConnection GoogleDriveConnection?
+}
+
+model GoogleDriveConnection {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  accessToken   String
+  refreshToken  String
+  expiresAt     DateTime
+  driveFolderId String
+  connectedAt   DateTime @default(now())
 }
 
 model Project {
