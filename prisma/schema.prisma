@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  projects  Project[]
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  tags      String[]
+  createdAt DateTime @default(now())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+  assets    Asset[]
+}
+
+enum AssetType {
+  VIDEO
+  AUDIO
+}
+
+enum AssetStatus {
+  UPLOADING
+  TRANSCRIBING
+  READY
+  ERROR
+}
+
+model Asset {
+  id          String      @id @default(cuid())
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id])
+  type        AssetType
+  sourceFile  String
+  duration    Int?
+  uploadedAt  DateTime    @default(now())
+  status      AssetStatus @default(UPLOADING)
+
+  transcript    Transcript?
+  flaggedQuotes FlaggedQuote[]
+  socialPosts   GeneratedSocialPost[]
+}
+
+model Transcript {
+  id       String @id @default(cuid())
+  assetId  String @unique
+  asset    Asset  @relation(fields: [assetId], references: [id])
+  text     String
+  segments Json
+}
+
+model FlaggedQuote {
+  id        String @id @default(cuid())
+  assetId   String
+  asset     Asset  @relation(fields: [assetId], references: [id])
+  timestamp Float
+  text      String
+  reason    String
+
+  socialPosts GeneratedSocialPost[]
+}
+
+model GeneratedSocialPost {
+  id        String        @id @default(cuid())
+  assetId   String
+  asset     Asset         @relation(fields: [assetId], references: [id])
+  quoteId   String?
+  quote     FlaggedQuote? @relation(fields: [quoteId], references: [id])
+  platform  String
+  copy      String
+  createdAt DateTime      @default(now())
+}
