@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { UploadAssetForm } from "@/components/upload-asset-form";
 import { AssetStatusPoller } from "@/components/asset-status-poller";
+import { TranscriptView } from "@/components/transcript-view";
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -36,9 +37,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             </div>
             <p className="mt-1 text-xs text-zinc-500">Drive file: {asset.sourceFile || "—"}</p>
             {asset.transcript && (
-              <p className="mt-2 whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">
-                {asset.transcript.text}
-              </p>
+              <TranscriptView text={asset.transcript.text} segments={asset.transcript.segments} />
             )}
           </li>
         ))}
