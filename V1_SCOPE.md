@@ -9,14 +9,15 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 - Project creation + browsing (home page)
 - File upload → pushed to Drive → `Asset` row created
 - AssemblyAI transcription, auto-triggered after upload, with speaker-labeled turns displayed
+- Claude API pipeline: quote flagging (3-6 quotable moments with timestamp + reason) then social post generation (one draft per quote per platform — Twitter/X, Instagram, Facebook), both following AP Style. Runs automatically right after transcription. New `GENERATING` asset status covers this step. Verified against a real transcript.
 
 **Not started yet:**
-- Claude API pipeline (quote flagging, then social post generation) — the next piece to build.
-- **Export — confirmed requirement, not just an idea.** All generated content per asset (transcript, flagged quotes, social post drafts) must be saved to the project (already true by design — see data model) *and* accessible for export as one combined file/package, not transcript-only. No download path exists yet. Raised by one of Nick's testers on 2026-09-18, confirmed by Nick as a real requirement the same day. Build this right after the Claude pipeline (quotes + social posts) exists, since exporting only the transcript now would mean redoing it.
+- **Export — confirmed requirement, not just an idea.** All generated content per asset (transcript, flagged quotes, social post drafts) must be saved to the project (already true by design — see data model) *and* accessible for export as one combined file/package, not transcript-only. No download path exists yet. Raised by one of Nick's testers on 2026-09-18, confirmed by Nick as a real requirement the same day. This is the next piece to build, now that the Claude pipeline exists to export.
 
 **Decisions made along the way that update this doc:**
 - **Database is Supabase, not Neon.** A separate session on the Mac Studio set this up independently before this was reconciled; decided to keep it rather than switch, since it was already working. Used purely as a Postgres host (no Supabase auth/storage features). The "Stack" section below is stale on this point.
 - No login/session system exists. `src/lib/auth/current-user.ts`'s `getCurrentUser()` is a placeholder that just picks the sole Drive-connected user. Needed before the 2 freelance testers can actually use this themselves.
+- **Style: AP Style only for now, no local-market style settings.** Nick's call — building local style rules into the prompt now would mean throwing that code away once a proper settings UI exists; pure AP Style keeps the future settings feature additive instead of a rewrite. See `src/lib/ai/style.ts`.
 
 **Known TODOs, not urgent but don't forget:**
 - Drive OAuth tokens are stored in plaintext in the `GoogleDriveConnection` table. Fine for solo testing; encrypt before testers connect real accounts.
@@ -26,7 +27,7 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 1. `git pull` (or `git clone git@github.com:pnickparker/reporter-multitool.git` if not cloned there yet).
 2. Make sure Node.js is installed (via nvm or Homebrew).
 3. `npm install`.
-4. Recreate `.env` on that machine — it's gitignored on purpose (real secrets), so it doesn't come from git. Copy the values from the Passwords app entries: Supabase `DATABASE_URL`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI`, `ASSEMBLYAI_API_KEY`. See `.env.example` for the exact variable names.
+4. Recreate `.env` on that machine — it's gitignored on purpose (real secrets), so it doesn't come from git. Copy the values from the Passwords app entries: Supabase `DATABASE_URL`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI`, `ASSEMBLYAI_API_KEY`, `ANTHROPIC_API_KEY`. See `.env.example` for the exact variable names.
 5. `npm run dev` and confirm `localhost:3000` loads and shows you signed in.
 6. Tell the new Claude Code session to read this file (`V1_SCOPE.md`) for context, then say what you want to work on next.
 
