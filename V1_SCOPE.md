@@ -10,7 +10,9 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 - File upload → pushed to Drive → `Asset` row created
 - AssemblyAI transcription, auto-triggered after upload, with speaker-labeled turns displayed
 
-**Not started yet:** Claude API pipeline (quote flagging, then social post generation) — the next piece to build.
+**Not started yet:**
+- Claude API pipeline (quote flagging, then social post generation) — the next piece to build.
+- **Export.** No way to download the transcript (or, later, quotes/social posts) as a file yet — everything only lives in-app/in the database. This is actually part of the original v1 pitch ("...→ generate social post drafts → **export**") but never got turned into a concrete build step. Worth doing right after the Claude pipeline exists, as one combined export (transcript + quotes + social drafts) rather than transcript-only. Raised by one of Nick's testers on 2026-09-18.
 
 **Decisions made along the way that update this doc:**
 - **Database is Supabase, not Neon.** A separate session on the Mac Studio set this up independently before this was reconciled; decided to keep it rather than switch, since it was already working. Used purely as a Postgres host (no Supabase auth/storage features). The "Stack" section below is stale on this point.
