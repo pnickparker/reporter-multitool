@@ -2,6 +2,32 @@
 
 Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`.
 
+## Status as of 2026-09-18 (read this first when resuming)
+
+**Working end-to-end, tested with real recordings:**
+- Google OAuth + Drive connection (one connected account, app-created "Reporter Multi-Tool" folder)
+- Project creation + browsing (home page)
+- File upload → pushed to Drive → `Asset` row created
+- AssemblyAI transcription, auto-triggered after upload, with speaker-labeled turns displayed
+
+**Not started yet:** Claude API pipeline (quote flagging, then social post generation) — the next piece to build.
+
+**Decisions made along the way that update this doc:**
+- **Database is Supabase, not Neon.** A separate session on the Mac Studio set this up independently before this was reconciled; decided to keep it rather than switch, since it was already working. Used purely as a Postgres host (no Supabase auth/storage features). The "Stack" section below is stale on this point.
+- No login/session system exists. `src/lib/auth/current-user.ts`'s `getCurrentUser()` is a placeholder that just picks the sole Drive-connected user. Needed before the 2 freelance testers can actually use this themselves.
+
+**Known TODOs, not urgent but don't forget:**
+- Drive OAuth tokens are stored in plaintext in the `GoogleDriveConnection` table. Fine for solo testing; encrypt before testers connect real accounts.
+- An early manual test asset may exist with status stuck at `UPLOADING` forever (created before transcription existed) — harmless, just delete it or ignore it if seen.
+
+**Resuming on a different machine (e.g. the Mac Studio):**
+1. `git pull` (or `git clone git@github.com:pnickparker/reporter-multitool.git` if not cloned there yet).
+2. Make sure Node.js is installed (via nvm or Homebrew).
+3. `npm install`.
+4. Recreate `.env` on that machine — it's gitignored on purpose (real secrets), so it doesn't come from git. Copy the values from the Passwords app entries: Supabase `DATABASE_URL`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`GOOGLE_REDIRECT_URI`, `ASSEMBLYAI_API_KEY`. See `.env.example` for the exact variable names.
+5. `npm run dev` and confirm `localhost:3000` loads and shows you signed in.
+6. Tell the new Claude Code session to read this file (`V1_SCOPE.md`) for context, then say what you want to work on next.
+
 ## What v1 is
 
 A **web app** that proves one end-to-end loop:
