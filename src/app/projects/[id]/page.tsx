@@ -1,14 +1,22 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { UploadAssetForm } from "@/components/upload-asset-form";
 import { AssetStatusPoller } from "@/components/asset-status-poller";
 import { TranscriptView } from "@/components/transcript-view";
+import { QuotesView } from "@/components/quotes-view";
+import { SocialPostsView } from "@/components/social-posts-view";
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await prisma.project.findUnique({
     where: { id },
-    include: { assets: { orderBy: { uploadedAt: "desc" }, include: { transcript: true } } },
+    include: {
+      assets: {
+        orderBy: { uploadedAt: "desc" },
+        include: { transcript: true, flaggedQuotes: true, socialPosts: true },
+      },
+    },
   });
 
   if (!project) notFound();
@@ -16,9 +24,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-16">
       <AssetStatusPoller statuses={project.assets.map((a) => a.status)} />
-      <a href="/" className="text-sm text-zinc-500 hover:underline">
+      <Link href="/" className="text-sm text-zinc-500 hover:underline">
         &larr; All projects
-      </a>
+      </Link>
       <h1 className="mt-2 text-2xl font-semibold">{project.name}</h1>
 
       <div className="mt-8">
@@ -39,6 +47,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             {asset.transcript && (
               <TranscriptView text={asset.transcript.text} segments={asset.transcript.segments} />
             )}
+            <QuotesView quotes={asset.flaggedQuotes} />
+            <SocialPostsView posts={asset.socialPosts} />
           </li>
         ))}
         {project.assets.length === 0 && (

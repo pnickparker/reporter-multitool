@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const PENDING_STATUSES = new Set(["UPLOADING", "TRANSCRIBING"]);
+const PENDING_STATUSES = new Set(["UPLOADING", "TRANSCRIBING", "GENERATING"]);
 
 /**
  * Refreshes the page every few seconds while any asset is still processing,

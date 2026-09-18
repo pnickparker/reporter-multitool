@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { transcribeBuffer } from "./assemblyai";
+import { processAiPipeline } from "@/lib/ai/pipeline";
 
 /**
  * Runs after the upload response has already been sent (see `after()` in the
@@ -15,7 +16,8 @@ export async function processTranscription(assetId: string, buffer: Buffer) {
       create: { assetId, text, segments: segments as object },
     });
 
-    await prisma.asset.update({ where: { id: assetId }, data: { status: "READY" } });
+    await prisma.asset.update({ where: { id: assetId }, data: { status: "GENERATING" } });
+    await processAiPipeline(assetId);
   } catch (err) {
     console.error(`Transcription failed for asset ${assetId}:`, err);
     await prisma.asset.update({ where: { id: assetId }, data: { status: "ERROR" } });
