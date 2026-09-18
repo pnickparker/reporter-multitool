@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { AssetType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getDriveClientForUser } from "@/lib/google/drive-client";
 import { GoogleDriveStorage } from "@/lib/storage/google-drive";
+import { processTranscription } from "@/lib/transcription/process";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -51,8 +53,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const updated = await prisma.asset.update({
       where: { id: asset.id },
-      data: { sourceFile: uploaded.id },
+      data: { sourceFile: uploaded.id, status: "TRANSCRIBING" },
     });
+
+    after(() => processTranscription(asset.id, buffer));
+
     return NextResponse.json(updated, { status: 201 });
   } catch (err) {
     await prisma.asset.update({ where: { id: asset.id }, data: { status: "ERROR" } });
