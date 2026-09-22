@@ -41,7 +41,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           >
             <div className="flex items-center justify-between">
               <span className="font-medium">{asset.type}</span>
-              <span className="text-zinc-500">{asset.status}</span>
+              <div className="flex items-center gap-3">
+                {asset.status === "READY" && (
+                  <a
+                    href={`/api/assets/${asset.id}/export`}
+                    download
+                    className="text-xs font-medium text-zinc-600 hover:underline dark:text-zinc-400"
+                  >
+                    Export
+                  </a>
+                )}
+                <span className="text-zinc-500">{asset.status}</span>
+              </div>
             </div>
             <p className="mt-1 text-xs text-zinc-500">Drive file: {asset.sourceFile || "—"}</p>
             {asset.transcript && (

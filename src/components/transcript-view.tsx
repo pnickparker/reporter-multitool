@@ -1,14 +1,4 @@
-interface Utterance {
-  speaker?: string;
-  text?: string;
-}
-
-function asUtterances(segments: unknown): Utterance[] {
-  if (!Array.isArray(segments)) return [];
-  return segments.filter(
-    (s): s is Utterance => typeof s === "object" && s !== null && "text" in s,
-  );
-}
+import { asUtterances } from "@/lib/transcript-format";
 
 /** Shows speaker-labeled turns when diarization data is available, falling back to the flat transcript text. */
 export function TranscriptView({ text, segments }: { text: string; segments: unknown }) {
