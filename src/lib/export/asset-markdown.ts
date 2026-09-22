@@ -41,7 +41,9 @@ export function buildAssetMarkdown(asset: AssetForExport): string {
   lines.push("");
   if (asset.flaggedQuotes.length > 0) {
     for (const q of asset.flaggedQuotes) {
-      lines.push(`- "${q.text}" (${formatTimestamp(q.timestamp)}) — ${q.reason}`);
+      lines.push(
+        `- "${q.text}" (${formatTimestamp(q.timestamp)}, engagement ${q.engagementScore}/100) — ${q.reason}`,
+      );
     }
     lines.push("");
   } else {

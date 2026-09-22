@@ -9,6 +9,12 @@ const QuotesSchema = z.object({
       text: z.string(),
       timestampSeconds: z.number(),
       reason: z.string(),
+      engagementScore: z
+        .number()
+        .int()
+        .min(0)
+        .max(100)
+        .describe("How likely this quote is to resonate with a social media audience, 0-100."),
     }),
   ),
 });
@@ -17,6 +23,7 @@ export interface FlaggedQuoteResult {
   text: string;
   timestampSeconds: number;
   reason: string;
+  engagementScore: number;
 }
 
 interface Utterance {
@@ -50,7 +57,7 @@ export async function flagQuotes(
     messages: [
       {
         role: "user",
-        content: `Read this speaker-labeled, timestamped interview transcript and flag the 3-6 most quotable moments: compelling, self-contained statements worth pulling out on their own. For each, give the exact quote text (verbatim from the transcript), the timestamp in seconds where it starts, and a brief reason it's worth flagging.\n\nTranscript:\n${transcript}`,
+        content: `Read this speaker-labeled, timestamped interview transcript and flag the quotable moments: compelling, self-contained statements worth pulling out on their own. Let the transcript's actual content decide how many — a short or thin clip may only have one or two genuinely quotable moments, and a rich interview may have six or more. Do not pad the list with weak filler just to reach a target count.\n\nFor each, give the exact quote text (verbatim from the transcript), the timestamp in seconds where it starts, a brief reason it's worth flagging, and an engagementScore (0-100) for how likely it is to resonate with a social media audience — be honest and use the full range; most transcripts will have at most one or two quotes above 80.\n\nTranscript:\n${transcript}`,
       },
     ],
     output_config: { format: zodOutputFormat(QuotesSchema) },

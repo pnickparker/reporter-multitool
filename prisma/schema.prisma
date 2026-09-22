@@ -75,12 +75,13 @@ model Transcript {
 }
 
 model FlaggedQuote {
-  id        String @id @default(cuid())
-  assetId   String
-  asset     Asset  @relation(fields: [assetId], references: [id])
-  timestamp Float
-  text      String
-  reason    String
+  id              String @id @default(cuid())
+  assetId         String
+  asset           Asset  @relation(fields: [assetId], references: [id])
+  timestamp       Float
+  text            String
+  reason          String
+  engagementScore Int    @default(0)
 
   socialPosts GeneratedSocialPost[]
 }
