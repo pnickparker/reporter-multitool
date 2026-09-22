@@ -11,9 +11,10 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 - AssemblyAI transcription, auto-triggered after upload, with speaker-labeled turns displayed
 - Claude API pipeline: quote flagging (3-6 quotable moments with timestamp + reason) then social post generation (one draft per quote per platform — Twitter/X, Instagram, Facebook), both following AP Style. Runs automatically right after transcription. New `GENERATING` asset status covers this step. Verified against a real transcript.
 - **VIDEO asset type confirmed working**, not just AUDIO — uploaded a real `.mp4` container through the full pipeline (Drive upload → AssemblyAI transcription → quotes → social posts), all correctly tagged `type: VIDEO`. Caveat: the test file had only an audio track (no picture) since no video-generation tool was available for testing — doesn't matter functionally since nothing in this app touches pixel data yet (no thumbnails/preview), but worth knowing this wasn't a real camera-recorded video file.
+- **Per-asset export**, satisfying the confirmed requirement above (transcript + flagged quotes + social post drafts, not transcript-only) — downloads as one `.md` file via an "Export" link once an asset is `READY`. Verified against a real asset.
 
 **Not started yet:**
-- **Export — confirmed requirement, not just an idea.** All generated content per asset (transcript, flagged quotes, social post drafts) must be saved to the project (already true by design — see data model) *and* accessible for export as one combined file/package, not transcript-only. No download path exists yet. Raised by one of Nick's testers on 2026-09-18, confirmed by Nick as a real requirement the same day. This is the next piece to build, now that the Claude pipeline exists to export.
+- **Whole-project export** (bundling every asset in a project into one combined file) — planned follow-up to per-asset export, not yet needed since Nick's testing has been single-asset so far.
 
 **Decisions made along the way that update this doc:**
 - **Database is Supabase, not Neon.** A separate session on the Mac Studio set this up independently before this was reconciled; decided to keep it rather than switch, since it was already working. Used purely as a Postgres host (no Supabase auth/storage features). The "Stack" section below is stale on this point.
