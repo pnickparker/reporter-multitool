@@ -16,6 +16,12 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 **Not started yet:**
 - **Whole-project export** (bundling every asset in a project into one combined file) — planned follow-up to per-asset export, not yet needed since Nick's testing has been single-asset so far.
 
+**Paused on 2026-09-22 for Nick to think through reporter workflow, not more building.** The core loop works and is tested — this pause is intentional, to make sure the next work serves an actual beat-reporter moment rather than becoming feature-building for its own sake. Two open questions raised in conversation, not yet answered, worth sitting with:
+
+1. **The capture gap.** Everything tested so far has been Nick at a desk, uploading a file he already had sitting on disk. The actual field moment — walk out of a locker room or council chambers, phone in hand, need something postable in the next five minutes — has never been tested, and today's flow (record in a separate camera app, then come to this web app to upload) doesn't match "shoot and hit go." Nick specifically noted this makes him "wary of missing a step" mentally, compared to a single continuous record→process action. Does the app need in-browser recording sooner than planned to close that gap? Does it need to work well on a phone browser at all today?
+
+2. **Social posts may be arriving too early.** Right now the whole pipeline (transcribe → flag quotes → generate posts) runs automatically and immediately, with no pause for a human to look at the transcript or the flagged quotes before posts get drafted. Nick's instinct: this might need to be a more deliberate, stepped process — e.g. review the transcript/quotes first, then explicitly trigger post generation — rather than one uninterrupted auto-run. Worth thinking about where a reporter would actually want to pause and look, versus where full automation is genuinely helpful.
+
 **Decisions made along the way that update this doc:**
 - **Database is Supabase, not Neon.** A separate session on the Mac Studio set this up independently before this was reconciled; decided to keep it rather than switch, since it was already working. Used purely as a Postgres host (no Supabase auth/storage features). The "Stack" section below is stale on this point.
 - No login/session system exists. `src/lib/auth/current-user.ts`'s `getCurrentUser()` is a placeholder that just picks the sole Drive-connected user. Needed before the 2 freelance testers can actually use this themselves.
