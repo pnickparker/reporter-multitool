@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { flagQuotes } from "./quotes";
 import { generateSocialPosts } from "./social-posts";
+import { errorMessage } from "@/lib/error-message";
 
 /**
  * Runs after transcription completes (see transcription/process.ts) — quote
@@ -41,6 +42,9 @@ export async function processAiPipeline(assetId: string) {
     await prisma.asset.update({ where: { id: assetId }, data: { status: "READY" } });
   } catch (err) {
     console.error(`AI pipeline failed for asset ${assetId}:`, err);
-    await prisma.asset.update({ where: { id: assetId }, data: { status: "ERROR" } });
+    await prisma.asset.update({
+      where: { id: assetId },
+      data: { status: "ERROR", errorMessage: errorMessage(err) },
+    });
   }
 }

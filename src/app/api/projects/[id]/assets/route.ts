@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { getDriveClientForUser } from "@/lib/google/drive-client";
 import { GoogleDriveStorage } from "@/lib/storage/google-drive";
 import { processTranscription } from "@/lib/transcription/process";
+import { errorMessage } from "@/lib/error-message";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -60,7 +61,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json(updated, { status: 201 });
   } catch (err) {
-    await prisma.asset.update({ where: { id: asset.id }, data: { status: "ERROR" } });
+    await prisma.asset.update({
+      where: { id: asset.id },
+      data: { status: "ERROR", errorMessage: errorMessage(err) },
+    });
     console.error("Asset upload failed:", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }

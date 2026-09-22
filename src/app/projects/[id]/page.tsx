@@ -51,10 +51,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     Export
                   </a>
                 )}
-                <span className="text-zinc-500">{asset.status}</span>
+                <span className={asset.status === "ERROR" ? "text-red-600" : "text-zinc-500"}>
+                  {asset.status}
+                </span>
               </div>
             </div>
             <p className="mt-1 text-xs text-zinc-500">Drive file: {asset.sourceFile || "—"}</p>
+            {asset.status === "ERROR" && asset.errorMessage && (
+              <p className="mt-1 text-xs text-red-600">{asset.errorMessage}</p>
+            )}
             {asset.transcript && (
               <TranscriptView text={asset.transcript.text} segments={asset.transcript.segments} />
             )}

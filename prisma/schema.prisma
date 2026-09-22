@@ -51,14 +51,15 @@ enum AssetStatus {
 }
 
 model Asset {
-  id          String      @id @default(cuid())
-  projectId   String
-  project     Project     @relation(fields: [projectId], references: [id])
-  type        AssetType
-  sourceFile  String
-  duration    Int?
-  uploadedAt  DateTime    @default(now())
-  status      AssetStatus @default(UPLOADING)
+  id           String      @id @default(cuid())
+  projectId    String
+  project      Project     @relation(fields: [projectId], references: [id])
+  type         AssetType
+  sourceFile   String
+  duration     Int?
+  uploadedAt   DateTime    @default(now())
+  status       AssetStatus @default(UPLOADING)
+  errorMessage String?
 
   transcript    Transcript?
   flaggedQuotes FlaggedQuote[]
