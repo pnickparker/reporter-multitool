@@ -2,7 +2,7 @@
 
 Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`.
 
-## Status as of 2026-09-18 (read this first when resuming)
+## Status as of 2026-09-21 (read this first when resuming)
 
 **Working end-to-end, tested with real recordings:**
 - Google OAuth + Drive connection (one connected account, app-created "Reporter Multi-Tool" folder)
@@ -10,6 +10,7 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 - File upload → pushed to Drive → `Asset` row created
 - AssemblyAI transcription, auto-triggered after upload, with speaker-labeled turns displayed
 - Claude API pipeline: quote flagging (3-6 quotable moments with timestamp + reason) then social post generation (one draft per quote per platform — Twitter/X, Instagram, Facebook), both following AP Style. Runs automatically right after transcription. New `GENERATING` asset status covers this step. Verified against a real transcript.
+- **VIDEO asset type confirmed working**, not just AUDIO — uploaded a real `.mp4` container through the full pipeline (Drive upload → AssemblyAI transcription → quotes → social posts), all correctly tagged `type: VIDEO`. Caveat: the test file had only an audio track (no picture) since no video-generation tool was available for testing — doesn't matter functionally since nothing in this app touches pixel data yet (no thumbnails/preview), but worth knowing this wasn't a real camera-recorded video file.
 
 **Not started yet:**
 - **Export — confirmed requirement, not just an idea.** All generated content per asset (transcript, flagged quotes, social post drafts) must be saved to the project (already true by design — see data model) *and* accessible for export as one combined file/package, not transcript-only. No download path exists yet. Raised by one of Nick's testers on 2026-09-18, confirmed by Nick as a real requirement the same day. This is the next piece to build, now that the Claude pipeline exists to export.
