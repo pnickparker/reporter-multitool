@@ -18,7 +18,14 @@ const ACCEPT_BY_TYPE: Record<Exclude<AssetType, "NOTE">, string> = {
   DOCUMENT: "image/*,application/pdf",
 };
 
-export function UploadAssetForm({ projectId }: { projectId: string }) {
+interface UploadAssetFormProps {
+  /** Where to POST the form data — a per-project upload or /api/quick-capture. */
+  endpoint: string;
+  /** Called with the created asset on success, instead of the default router.refresh(). */
+  onSuccess?: (asset: { projectId: string }) => void;
+}
+
+export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<AssetType>("AUDIO");
@@ -50,10 +57,7 @@ export function UploadAssetForm({ projectId }: { projectId: string }) {
     setUploading(true);
     setError(null);
 
-    const res = await fetch(`/api/projects/${projectId}/assets`, {
-      method: "POST",
-      body: formData,
-    });
+    const res = await fetch(endpoint, { method: "POST", body: formData });
     setUploading(false);
 
     if (!res.ok) {
@@ -64,7 +68,12 @@ export function UploadAssetForm({ projectId }: { projectId: string }) {
 
     if (fileInputRef.current) fileInputRef.current.value = "";
     setNoteText("");
-    router.refresh();
+
+    if (onSuccess) {
+      onSuccess(await res.json());
+    } else {
+      router.refresh();
+    }
   }
 
   return (

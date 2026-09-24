@@ -28,12 +28,15 @@ model GoogleDriveConnection {
 }
 
 model Project {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
+  notes     String?
+  eventDate DateTime?
+  venue     String?
   tags      String[]
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   ownerId   String
-  owner     User     @relation(fields: [ownerId], references: [id])
+  owner     User      @relation(fields: [ownerId], references: [id])
   assets    Asset[]
 }
 

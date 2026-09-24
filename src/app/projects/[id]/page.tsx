@@ -6,6 +6,7 @@ import { AssetStatusPoller } from "@/components/asset-status-poller";
 import { TranscriptView } from "@/components/transcript-view";
 import { QuotesView } from "@/components/quotes-view";
 import { SocialPostsView } from "@/components/social-posts-view";
+import { ProjectDetailsForm } from "@/components/project-details-form";
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,8 +41,26 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         )}
       </div>
 
+      {(project.venue || project.eventDate || project.notes) && (
+        <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          {project.venue && <span>{project.venue}</span>}
+          {project.venue && project.eventDate && <span> &middot; </span>}
+          {project.eventDate && <span>{project.eventDate.toISOString().slice(0, 10)}</span>}
+          {project.notes && <p className="mt-1">{project.notes}</p>}
+        </div>
+      )}
+
+      <div className="mt-2">
+        <ProjectDetailsForm
+          projectId={project.id}
+          notes={project.notes}
+          venue={project.venue}
+          eventDate={project.eventDate ? project.eventDate.toISOString().slice(0, 10) : null}
+        />
+      </div>
+
       <div className="mt-8">
-        <UploadAssetForm projectId={project.id} />
+        <UploadAssetForm endpoint={`/api/projects/${project.id}/assets`} />
       </div>
 
       <ul className="mt-8 flex flex-col gap-2">
