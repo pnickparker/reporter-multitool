@@ -8,6 +8,12 @@ export type AssetForExport = Asset & {
   socialPosts: GeneratedSocialPost[];
 };
 
+export type AssetWithContent = Asset & {
+  transcript: Transcript | null;
+  flaggedQuotes: FlaggedQuote[];
+  socialPosts: GeneratedSocialPost[];
+};
+
 function formatTimestamp(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60)
@@ -16,56 +22,68 @@ function formatTimestamp(seconds: number): string {
   return `${m}:${s}`;
 }
 
+function transcriptSection(heading: string, transcript: Transcript | null): string[] {
+  const lines = [`${heading} Transcript`, ""];
+  if (!transcript) return [...lines, "_No transcript yet._", ""];
+
+  const utterances = asUtterances(transcript.segments);
+  if (utterances.length > 0) {
+    for (const u of utterances) lines.push(`**Speaker ${u.speaker ?? "?"}:** ${u.text}`, "");
+  } else {
+    lines.push(transcript.text, "");
+  }
+  return lines;
+}
+
+function quotesSection(heading: string, quotes: FlaggedQuote[]): string[] {
+  const lines = [`${heading} Flagged Quotes`, ""];
+  if (quotes.length === 0) return [...lines, "_No quotes flagged yet._", ""];
+
+  for (const q of quotes) {
+    lines.push(
+      `- "${q.text}" (${formatTimestamp(q.timestamp)}, engagement ${q.engagementScore}/100) — ${q.reason}`,
+    );
+  }
+  return [...lines, ""];
+}
+
+function postsSection(heading: string, posts: GeneratedSocialPost[]): string[] {
+  const lines = [`${heading} Social Post Drafts`, ""];
+  if (posts.length === 0) return [...lines, "_No social posts generated yet._", ""];
+
+  const byPlatform = new Map<string, GeneratedSocialPost[]>();
+  for (const p of posts) {
+    byPlatform.set(p.platform, [...(byPlatform.get(p.platform) ?? []), p]);
+  }
+  for (const [platform, platformPosts] of byPlatform) {
+    lines.push(`${heading}# ${platform}`, "");
+    for (const p of platformPosts) lines.push(p.copy, "");
+  }
+  return lines;
+}
+
 export function buildAssetMarkdown(asset: AssetForExport): string {
-  const lines: string[] = [];
+  const lines = [
+    `# ${asset.project.name} — ${asset.type} (${asset.uploadedAt.toISOString().slice(0, 10)})`,
+    "",
+    ...transcriptSection("##", asset.transcript),
+    ...quotesSection("##", asset.flaggedQuotes),
+    ...postsSection("##", asset.socialPosts),
+  ];
+  return lines.join("\n");
+}
 
-  lines.push(`# ${asset.project.name} — ${asset.type} (${asset.uploadedAt.toISOString().slice(0, 10)})`);
-  lines.push("");
+export function buildProjectMarkdown(project: Project, assets: AssetWithContent[]): string {
+  const lines = [`# ${project.name}`, ""];
 
-  lines.push("## Transcript");
-  lines.push("");
-  if (asset.transcript) {
-    const utterances = asUtterances(asset.transcript.segments);
-    if (utterances.length > 0) {
-      for (const u of utterances) {
-        lines.push(`**Speaker ${u.speaker ?? "?"}:** ${u.text}`, "");
-      }
-    } else {
-      lines.push(asset.transcript.text, "");
-    }
-  } else {
-    lines.push("_No transcript yet._", "");
+  for (const asset of assets) {
+    lines.push(`## ${asset.type} (${asset.uploadedAt.toISOString().slice(0, 10)})`, "");
+    lines.push(...transcriptSection("###", asset.transcript));
+    lines.push(...quotesSection("###", asset.flaggedQuotes));
+    lines.push(...postsSection("###", asset.socialPosts));
   }
 
-  lines.push("## Flagged Quotes");
-  lines.push("");
-  if (asset.flaggedQuotes.length > 0) {
-    for (const q of asset.flaggedQuotes) {
-      lines.push(
-        `- "${q.text}" (${formatTimestamp(q.timestamp)}, engagement ${q.engagementScore}/100) — ${q.reason}`,
-      );
-    }
-    lines.push("");
-  } else {
-    lines.push("_No quotes flagged yet._", "");
-  }
-
-  lines.push("## Social Post Drafts");
-  lines.push("");
-  if (asset.socialPosts.length > 0) {
-    const byPlatform = new Map<string, GeneratedSocialPost[]>();
-    for (const p of asset.socialPosts) {
-      byPlatform.set(p.platform, [...(byPlatform.get(p.platform) ?? []), p]);
-    }
-    for (const [platform, posts] of byPlatform) {
-      lines.push(`### ${platform}`, "");
-      for (const p of posts) {
-        lines.push(p.copy, "");
-      }
-    }
-  } else {
-    lines.push("_No social posts generated yet._", "");
-  }
+  if (assets.length === 0) lines.push("_No assets in this project yet._", "");
 
   return lines.join("\n");
 }

@@ -27,7 +27,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <Link href="/" className="text-sm text-zinc-500 hover:underline">
         &larr; All projects
       </Link>
-      <h1 className="mt-2 text-2xl font-semibold">{project.name}</h1>
+      <div className="mt-2 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{project.name}</h1>
+        {project.assets.length > 0 && (
+          <a
+            href={`/api/projects/${project.id}/export`}
+            download
+            className="text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400"
+          >
+            Export whole project
+          </a>
+        )}
+      </div>
 
       <div className="mt-8">
         <UploadAssetForm projectId={project.id} />
