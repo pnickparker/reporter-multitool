@@ -67,7 +67,23 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                 </span>
               </div>
             </div>
-            <p className="mt-1 text-xs text-zinc-500">Drive file: {asset.sourceFile || "—"}</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              {asset.sourceFile ? (
+                <>
+                  Drive file:{" "}
+                  <a
+                    href={`https://drive.google.com/file/d/${asset.sourceFile}/view`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                  >
+                    open
+                  </a>
+                </>
+              ) : (
+                "Drive file: —"
+              )}
+            </p>
             {asset.status === "ERROR" && asset.errorMessage && (
               <p className="mt-1 text-xs text-red-600">{asset.errorMessage}</p>
             )}

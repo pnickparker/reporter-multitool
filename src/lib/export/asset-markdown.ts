@@ -1,4 +1,11 @@
-import type { Asset, FlaggedQuote, GeneratedSocialPost, Transcript, Project } from "@prisma/client";
+import type {
+  Asset,
+  AssetType,
+  FlaggedQuote,
+  GeneratedSocialPost,
+  Transcript,
+  Project,
+} from "@prisma/client";
 import { asUtterances } from "@/lib/transcript-format";
 
 export type AssetForExport = Asset & {
@@ -62,13 +69,32 @@ function postsSection(heading: string, posts: GeneratedSocialPost[]): string[] {
   return lines;
 }
 
+function noteSection(heading: string, transcript: Transcript | null): string[] {
+  return [`${heading} Note`, "", transcript?.text ?? "_Empty note._", ""];
+}
+
+/**
+ * AUDIO/VIDEO get the full pipeline output; NOTE just shows its text; DOCUMENT
+ * is reference material only (photo/PDF), nothing to render but the header —
+ * see the Drive link on the asset itself.
+ */
+function contentSections(heading: string, type: AssetType, asset: AssetWithContent): string[] {
+  if (type === "NOTE") return noteSection(heading, asset.transcript);
+  if (type === "DOCUMENT") {
+    return [`Reference document — [open in Drive](https://drive.google.com/file/d/${asset.sourceFile}/view).`, ""];
+  }
+  return [
+    ...transcriptSection(heading, asset.transcript),
+    ...quotesSection(heading, asset.flaggedQuotes),
+    ...postsSection(heading, asset.socialPosts),
+  ];
+}
+
 export function buildAssetMarkdown(asset: AssetForExport): string {
   const lines = [
     `# ${asset.project.name} — ${asset.type} (${asset.uploadedAt.toISOString().slice(0, 10)})`,
     "",
-    ...transcriptSection("##", asset.transcript),
-    ...quotesSection("##", asset.flaggedQuotes),
-    ...postsSection("##", asset.socialPosts),
+    ...contentSections("##", asset.type, asset),
   ];
   return lines.join("\n");
 }
@@ -78,9 +104,7 @@ export function buildProjectMarkdown(project: Project, assets: AssetWithContent[
 
   for (const asset of assets) {
     lines.push(`## ${asset.type} (${asset.uploadedAt.toISOString().slice(0, 10)})`, "");
-    lines.push(...transcriptSection("###", asset.transcript));
-    lines.push(...quotesSection("###", asset.flaggedQuotes));
-    lines.push(...postsSection("###", asset.socialPosts));
+    lines.push(...contentSections("###", asset.type, asset));
   }
 
   if (assets.length === 0) lines.push("_No assets in this project yet._", "");

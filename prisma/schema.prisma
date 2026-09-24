@@ -40,6 +40,8 @@ model Project {
 enum AssetType {
   VIDEO
   AUDIO
+  DOCUMENT
+  NOTE
 }
 
 enum AssetStatus {
