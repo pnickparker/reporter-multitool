@@ -93,6 +93,7 @@ Estimated AI cost: **under $0.50 per hour of raw footage processed** — at real
 - Multi-cloud support (Dropbox/iCloud as alternatives to Drive).
 - Revenue model / tiers — irrelevant until there's a working product to attach pricing to.
 - Meeting-minutes-style generation from a transcript, and newsletter packaging — both held back until there's real usage data showing they're needed (added to this list 2026-09-24, per Product Plan).
+- **Document/note summarization** (AI-generated summary or bullet-point themes from an uploaded document, the way Nick already does this in a Claude chat) — raised by Nick while scoping Notes/Documents (2026-09-24), deliberately deferred: tester feedback validated documents as reference material, not AI-summarized material, and real-world documents will often be phone photos needing OCR, not clean text — a bigger lift than "add a file type." Revisit once documents-as-reference-material has been used for a while and there's a concrete want, not before. Notes and Documents ship this round as pure storage: no transcription, no AI processing, just saved and shown alongside the recording.
 - Video clip auto-cutting (à la Riverside/Opus Clip) and CMS publish packaging — moved to v2 scope in the Product Plan, not abandoned. Both flagged as needing more groundwork first (a feasibility spike for clip-cutting; knowing which CMS Link 2 Lee's Summit actually runs, for packaging) before they can be scoped as real work.
 
 ## Data model (working draft)
