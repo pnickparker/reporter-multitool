@@ -2,6 +2,8 @@
 
 Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`.
 
+**See also: "Reporter Multi-Tool: Product Plan"** — a fuller vision/workflow doc Nick built on claude.ai (not in this repo by design; saved as PDF to `~/Library/Mobile Documents/com~apple~CloudDocs/01_Multitool/`). It's the source of truth for the *why* behind v1 scope and the locked build order below; this file stays the technical build log.
+
 ## Status as of 2026-09-21 (read this first when resuming)
 
 **Working end-to-end, tested with real recordings:**
@@ -13,14 +15,17 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 - **VIDEO asset type confirmed working**, not just AUDIO — uploaded a real `.mp4` container through the full pipeline (Drive upload → AssemblyAI transcription → quotes → social posts), all correctly tagged `type: VIDEO`. Caveat: the test file had only an audio track (no picture) since no video-generation tool was available for testing — doesn't matter functionally since nothing in this app touches pixel data yet (no thumbnails/preview), but worth knowing this wasn't a real camera-recorded video file.
 - **Per-asset export**, satisfying the confirmed requirement above (transcript + flagged quotes + social post drafts, not transcript-only) — downloads as one `.md` file via an "Export" link once an asset is `READY`. Verified against a real asset.
 
-**Not started yet:**
-- **Whole-project export** (bundling every asset in a project into one combined file) — planned follow-up to per-asset export, not yet needed since Nick's testing has been single-asset so far.
+**Not started yet — locked build order from the 2026-09-24 planning pass (see Product Plan):**
+1. **Whole-project export** — bundle every asset in a project into one combined file. Already fully scoped, no new decisions needed.
+2. **Notes and Documents as new Asset types** — tester-requested (both testers already voice-dictate notes leaving a venue, and photograph rosters/agendas with nowhere to live). Extends the existing `Asset` model rather than needing new infrastructure. Needs to land before #3, since quick capture's "+" menu needs all four capture types to exist.
+3. **Quick capture + optional pre-event project fields** — a "+" button offering Record/Upload Audio, Record/Upload Video, Add Document, Add Note with no project required first (auto-creates a default-named project if none exists); separately, projects gain optional title/notes/date/venue fields fillable anytime. Built on top of #2.
+4. **Beat tagging** — reuses the existing `tags` field, no new schema. Cheapest of the four, slots in whenever.
 
-**Paused on 2026-09-22 for Nick to think through reporter workflow, not more building.** The core loop works and is tested — this pause is intentional, to make sure the next work serves an actual beat-reporter moment rather than becoming feature-building for its own sake. Two open questions raised in conversation, not yet answered, worth sitting with:
+**Resolved on 2026-09-24 (see Product Plan):**
+1. **The capture gap** — resolved as a deliberate no, not an oversight. In-app camera/mic recording (browser `MediaRecorder`) will not be built: the ordinary upload flow already launches the phone's native camera/mic app through the OS file picker, which is faster and higher quality than a custom in-app recorder would be. Revisit only if testers report the upload-picker path is actually too slow/clunky in real field use (this is now an explicit open question in the Product Plan).
 
-1. **The capture gap.** Everything tested so far has been Nick at a desk, uploading a file he already had sitting on disk. The actual field moment — walk out of a locker room or council chambers, phone in hand, need something postable in the next five minutes — has never been tested, and today's flow (record in a separate camera app, then come to this web app to upload) doesn't match "shoot and hit go." Nick specifically noted this makes him "wary of missing a step" mentally, compared to a single continuous record→process action. Does the app need in-browser recording sooner than planned to close that gap? Does it need to work well on a phone browser at all today?
-
-2. **Social posts may be arriving too early.** Right now the whole pipeline (transcribe → flag quotes → generate posts) runs automatically and immediately, with no pause for a human to look at the transcript or the flagged quotes before posts get drafted. Nick's instinct: this might need to be a more deliberate, stepped process — e.g. review the transcript/quotes first, then explicitly trigger post generation — rather than one uninterrupted auto-run. Worth thinking about where a reporter would actually want to pause and look, versus where full automation is genuinely helpful.
+**Still open — not addressed by the Product Plan, needs a decision:**
+2. **Social posts may be arriving too early.** The pipeline (transcribe → flag quotes → generate posts) still runs automatically and immediately with no human checkpoint. Nick's instinct from 2026-09-22 was that this might need to become a more deliberate, stepped process — review transcript/quotes first, then explicitly trigger post generation. The 2026-09-24 Product Plan's workflow diagram bundles "transcript · quotes · posts" as one uninterrupted "Post-event (v1)" stage, so this question wasn't resolved one way or the other — worth explicitly deciding rather than assuming it's settled.
 
 **Decisions made along the way that update this doc:**
 - **Database is Supabase, not Neon.** A separate session on the Mac Studio set this up independently before this was reconciled; decided to keep it rather than switch, since it was already working. Used purely as a Postgres host (no Supabase auth/storage features). The "Stack" section below is stale on this point.
@@ -87,6 +92,8 @@ Estimated AI cost: **under $0.50 per hour of raw footage processed** — at real
 - Social scheduling.
 - Multi-cloud support (Dropbox/iCloud as alternatives to Drive).
 - Revenue model / tiers — irrelevant until there's a working product to attach pricing to.
+- Meeting-minutes-style generation from a transcript, and newsletter packaging — both held back until there's real usage data showing they're needed (added to this list 2026-09-24, per Product Plan).
+- Video clip auto-cutting (à la Riverside/Opus Clip) and CMS publish packaging — moved to v2 scope in the Product Plan, not abandoned. Both flagged as needing more groundwork first (a feasibility spike for clip-cutting; knowing which CMS Link 2 Lee's Summit actually runs, for packaging) before they can be scoped as real work.
 
 ## Data model (working draft)
 
@@ -115,10 +122,4 @@ Project
 
 ## Next steps
 
-1. Scaffold the Next.js project + Postgres schema for Project/Asset.
-2. Google OAuth + Drive API connection (upload a file, confirm it lands in Nick's Drive folder).
-3. Upload flow (UI + storage abstraction) for audio/video files.
-4. AssemblyAI integration — auto-transcribe on upload.
-5. Claude API pipeline — quote flagging, then social post generation.
-6. Basic project/asset browsing UI to tie it together.
-7. Test end-to-end with a real short interview clip.
+All of the original 7 steps here are done (scaffold, OAuth/Drive, upload, transcription, AI pipeline, browsing UI, real-clip test) — see the Status section at the top for what's actually built and verified. Current build order is the locked list in that section: whole-project export → Notes/Documents asset types → quick capture + pre-event project fields → beat tagging.
