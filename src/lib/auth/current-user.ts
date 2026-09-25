@@ -9,6 +9,10 @@ export async function getCurrentUser() {
   const user = await prisma.user.findFirst({
     where: { driveConnection: { isNot: null } },
     include: { driveConnection: true },
+    // Deterministic: with real testers now sharing the site passphrase, if
+    // anyone else ever hits /api/auth/google/connect this must still resolve
+    // to whoever connected first (Nick), not an arbitrary row.
+    orderBy: { createdAt: "asc" },
   });
 
   if (!user || !user.driveConnection) {

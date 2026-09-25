@@ -9,7 +9,10 @@ export default async function Home({
   searchParams: Promise<{ tag?: string }>;
 }) {
   const { tag } = await searchParams;
-  const user = await prisma.user.findFirst({ where: { driveConnection: { isNot: null } } });
+  const user = await prisma.user.findFirst({
+    where: { driveConnection: { isNot: null } },
+    orderBy: { createdAt: "asc" },
+  });
 
   if (!user) {
     return (
