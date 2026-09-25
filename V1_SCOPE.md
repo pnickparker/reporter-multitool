@@ -4,7 +4,9 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 
 **See also: "Reporter Multi-Tool: Product Plan"** — a fuller vision/workflow doc Nick built on claude.ai (not in this repo by design; saved as PDF to `~/Library/Mobile Documents/com~apple~CloudDocs/01_Multitool/`). It's the source of truth for the *why* behind v1 scope and the locked build order below; this file stays the technical build log.
 
-## Status as of 2026-09-21 (read this first when resuming)
+## Status as of 2026-09-25 (read this first when resuming)
+
+**The entire locked build order from the 2026-09-24 Product Plan is now done.** All four items (whole-project export, Notes/Documents, quick capture + pre-event fields, beat tagging) are built and verified. There is no pre-assigned "next thing" anymore — the next step needs a real decision from Nick, informed by either the open question below or actual field testing with real recordings.
 
 **Working end-to-end, tested with real recordings:**
 - Google OAuth + Drive connection (one connected account, app-created "Reporter Multi-Tool" folder)
@@ -18,8 +20,7 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 - **Notes and Documents as new Asset types** — pure reference material, no transcription or AI processing (deliberate — see "Explicitly deferred" below re: document summarization). NOTE saves typed/dictated text to Drive as `.txt` plus a `Transcript` row for display/export reuse; DOCUMENT uploads photos/PDFs to Drive like audio/video but skips the pipeline. Both go straight to `READY`. Upload form now offers all four types. Export is type-aware (Notes show their text, Documents show a Drive link, no misleading "not yet" placeholders). Verified end-to-end.
 - **Quick capture + optional pre-event project fields** — a "+" button (fixed in the root layout, always visible) links to `/capture`, which uploads via `POST /api/quick-capture`: no project needs to exist first, a default-named project ("Quick Capture — <date>") is created on the fly, and the reporter lands on it afterward to rename or add details. Separately, projects gained optional `notes`/`eventDate`/`venue` fields, editable anytime via an "Add details"/"Edit details" toggle on the project page. Upload logic was extracted into `src/lib/assets/create-asset.ts` so the per-project route and quick-capture share it. Verified end-to-end (quick note capture → auto-created project → redirect → added details afterward).
 
-**Not started yet — locked build order from the 2026-09-24 planning pass (see Product Plan), #1-3 done above:**
-4. **Beat tagging** — reuses the existing `tags` field, no new schema. Cheapest of the four, slots in whenever. **Current focus — last item in the locked order.**
+- **Beat tagging** — reuses the existing `tags` field on `Project` (no schema change). Editable via a "Beat / tags" field in `ProjectDetailsForm` (comma-separated); renders as clickable badges (`TagBadges` component) linking to `/?tag=X`, which filters the home page's project list. This is the plan's "retrieval across time" mechanism — tag every game for one team or every meeting for one city, click the tag later to see them all. Verified end-to-end with two differently-tagged test projects. Relevant to one of the Product Plan's open questions ("is beat a tag or a real container above projects?") — built as the simple tag version; revisit only if a flat tag + filter turns out to not be enough in practice.
 
 **Resolved on 2026-09-24 (see Product Plan):**
 1. **The capture gap** — resolved as a deliberate no, not an oversight. In-app camera/mic recording (browser `MediaRecorder`) will not be built: the ordinary upload flow already launches the phone's native camera/mic app through the OS file picker, which is faster and higher quality than a custom in-app recorder would be. Revisit only if testers report the upload-picker path is actually too slow/clunky in real field use (this is now an explicit open question in the Product Plan).
