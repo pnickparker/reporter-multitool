@@ -9,19 +9,27 @@ interface ProjectDetailsFormProps {
   venue: string | null;
   /** ISO date string (yyyy-mm-dd) or null, ready for an <input type="date"> */
   eventDate: string | null;
+  tags: string[];
 }
 
-/** Optional pre-event/contextual fields — fillable anytime, or never. */
-export function ProjectDetailsForm({ projectId, notes, venue, eventDate }: ProjectDetailsFormProps) {
+/** Optional pre-event/contextual fields, plus beat tags — fillable anytime, or never. */
+export function ProjectDetailsForm({
+  projectId,
+  notes,
+  venue,
+  eventDate,
+  tags,
+}: ProjectDetailsFormProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [notesValue, setNotesValue] = useState(notes ?? "");
   const [venueValue, setVenueValue] = useState(venue ?? "");
   const [dateValue, setDateValue] = useState(eventDate ?? "");
+  const [tagsValue, setTagsValue] = useState(tags.join(", "));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasDetails = Boolean(notes || venue || eventDate);
+  const hasDetails = Boolean(notes || venue || eventDate || tags.length > 0);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -31,7 +39,15 @@ export function ProjectDetailsForm({ projectId, notes, venue, eventDate }: Proje
     const res = await fetch(`/api/projects/${projectId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notes: notesValue, venue: venueValue, eventDate: dateValue || null }),
+      body: JSON.stringify({
+        notes: notesValue,
+        venue: venueValue,
+        eventDate: dateValue || null,
+        tags: tagsValue
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+      }),
     });
     setSaving(false);
 
@@ -51,7 +67,7 @@ export function ProjectDetailsForm({ projectId, notes, venue, eventDate }: Proje
         onClick={() => setExpanded(true)}
         className="text-sm text-zinc-500 hover:underline"
       >
-        {hasDetails ? "Edit details" : "Add details (venue, date, notes) — optional"}
+        {hasDetails ? "Edit details" : "Add details (beat, venue, date, notes) — optional"}
       </button>
     );
   }
@@ -61,6 +77,19 @@ export function ProjectDetailsForm({ projectId, notes, venue, eventDate }: Proje
       onSubmit={handleSubmit}
       className="flex flex-col gap-3 rounded border border-zinc-300 p-4 text-sm dark:border-zinc-700"
     >
+      <label className="flex flex-col gap-1">
+        Beat / tags
+        <input
+          type="text"
+          value={tagsValue}
+          onChange={(e) => setTagsValue(e.target.value)}
+          placeholder="e.g. Central High Football, City Council"
+          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+        />
+        <span className="text-xs text-zinc-500">
+          Comma-separated — lets you find every project on the same beat later.
+        </span>
+      </label>
       <label className="flex flex-col gap-1">
         Date
         <input

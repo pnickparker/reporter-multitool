@@ -21,7 +21,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const data: { name?: string; notes?: string | null; venue?: string | null; eventDate?: Date | null } = {};
+  const data: {
+    name?: string;
+    notes?: string | null;
+    venue?: string | null;
+    eventDate?: Date | null;
+    tags?: string[];
+  } = {};
 
   if (body.name !== undefined) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -36,6 +42,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (body.eventDate !== undefined) {
     data.eventDate = typeof body.eventDate === "string" && body.eventDate ? new Date(body.eventDate) : null;
+  }
+  if (body.tags !== undefined) {
+    if (!Array.isArray(body.tags) || !body.tags.every((t: unknown) => typeof t === "string")) {
+      return NextResponse.json({ error: "tags must be an array of strings" }, { status: 400 });
+    }
+    data.tags = body.tags.map((t: string) => t.trim()).filter(Boolean);
   }
 
   const updated = await prisma.project.update({ where: { id }, data });

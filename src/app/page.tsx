@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { CreateProjectForm } from "@/components/create-project-form";
+import { TagBadges } from "@/components/tag-badges";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ tag?: string }>;
+}) {
+  const { tag } = await searchParams;
   const user = await prisma.user.findFirst({ where: { driveConnection: { isNot: null } } });
 
   if (!user) {
@@ -23,7 +29,7 @@ export default async function Home() {
   }
 
   const projects = await prisma.project.findMany({
-    where: { ownerId: user.id },
+    where: { ownerId: user.id, ...(tag ? { tags: { has: tag } } : {}) },
     include: { _count: { select: { assets: true } } },
     orderBy: { createdAt: "desc" },
   });
@@ -37,19 +43,36 @@ export default async function Home() {
         <CreateProjectForm />
       </div>
 
-      <ul className="mt-8 flex flex-col gap-2">
+      {tag && (
+        <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+          Showing beat: <span className="font-medium">{tag}</span> —{" "}
+          <Link href="/" className="hover:underline">
+            clear filter
+          </Link>
+        </p>
+      )}
+
+      <ul className="mt-4 flex flex-col gap-2">
         {projects.map((project) => (
-          <li key={project.id}>
-            <Link
-              href={`/projects/${project.id}`}
-              className="flex items-center justify-between rounded border border-zinc-200 px-4 py-3 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-            >
+          <li
+            key={project.id}
+            className="rounded border border-zinc-200 px-4 py-3 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+          >
+            <Link href={`/projects/${project.id}`} className="flex items-center justify-between">
               <span>{project.name}</span>
               <span className="text-sm text-zinc-500">{project._count.assets} asset(s)</span>
             </Link>
+            {project.tags.length > 0 && (
+              <div className="mt-2">
+                <TagBadges tags={project.tags} />
+              </div>
+            )}
           </li>
         ))}
-        {projects.length === 0 && (
+        {projects.length === 0 && tag && (
+          <p className="text-sm text-zinc-500">No projects tagged &ldquo;{tag}&rdquo;.</p>
+        )}
+        {projects.length === 0 && !tag && (
           <p className="text-sm text-zinc-500">No projects yet — create one above.</p>
         )}
       </ul>
