@@ -28,6 +28,8 @@ Caught and fixed one real bug while testing this against Nick's actual recording
 
 **Ready to hand off to the two testers, for real this time** — capture, transcription, export, and native sharing have all now been confirmed on a real device.
 
+**Added: delete a project.** There was previously no way to remove a project at all — Nick wanted to clear out accumulated test/junk projects before testers saw the home page. New `DELETE /api/projects/[id]` (cascading delete of its assets/transcripts/flagged quotes/social posts, wrapped in a transaction) plus a "Delete" button (`src/components/delete-project-button.tsx`, with a native `confirm()` before it does anything) on both the home page project rows and the project detail page. Deliberately only removes app/database rows, not the underlying files in Drive — "clear the list," not "destroy the archive." Verified locally (empty project and a 3-asset project both deleted cleanly, no FK errors); used it to clear out this session's own test-run projects from the shared database, left Nick's own older test projects ("Nick Test 1," "Coach Miller - Test 09212026") for him to remove himself now that the button exists.
+
 ## Status as of 2026-09-28 — deployed and live
 
 **The Vercel deployment is done and working end-to-end.** Root cause of the earlier stuck/failed deploys turned out to be a bulk-paste of environment variables that silently saved several as empty: `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ASSEMBLYAI_API_KEY`, and eventually `SITE_PASSPHRASE` too (found last, once login itself started rejecting the correct phrase). All were re-entered fresh from their sources and the deploy succeeded. Two other real fixes along the way, both now committed:

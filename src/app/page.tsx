@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { CreateProjectForm } from "@/components/create-project-form";
 import { TagBadges } from "@/components/tag-badges";
+import { DeleteProjectButton } from "@/components/delete-project-button";
 
 export default async function Home({
   searchParams,
@@ -65,11 +66,10 @@ export default async function Home({
               <span>{project.name}</span>
               <span className="text-sm text-zinc-500">{project._count.assets} asset(s)</span>
             </Link>
-            {project.tags.length > 0 && (
-              <div className="mt-2">
-                <TagBadges tags={project.tags} />
-              </div>
-            )}
+            <div className="mt-2 flex items-center justify-between">
+              {project.tags.length > 0 ? <TagBadges tags={project.tags} /> : <span />}
+              <DeleteProjectButton projectId={project.id} projectName={project.name} />
+            </div>
           </li>
         ))}
         {projects.length === 0 && tag && (

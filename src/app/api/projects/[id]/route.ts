@@ -53,3 +53,26 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const updated = await prisma.project.update({ where: { id }, data });
   return NextResponse.json(updated);
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await getCurrentUser();
+
+  const project = await prisma.project.findUnique({ where: { id } });
+  if (!project || project.ownerId !== user.id) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  const assets = await prisma.asset.findMany({ where: { projectId: id }, select: { id: true } });
+  const assetIds = assets.map((a) => a.id);
+
+  await prisma.$transaction([
+    prisma.generatedSocialPost.deleteMany({ where: { assetId: { in: assetIds } } }),
+    prisma.flaggedQuote.deleteMany({ where: { assetId: { in: assetIds } } }),
+    prisma.transcript.deleteMany({ where: { assetId: { in: assetIds } } }),
+    prisma.asset.deleteMany({ where: { projectId: id } }),
+    prisma.project.delete({ where: { id } }),
+  ]);
+
+  return new NextResponse(null, { status: 204 });
+}

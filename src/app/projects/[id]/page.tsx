@@ -9,6 +9,7 @@ import { SocialPostsView } from "@/components/social-posts-view";
 import { ProjectDetailsForm } from "@/components/project-details-form";
 import { TagBadges } from "@/components/tag-badges";
 import { ShareFileButton } from "@/components/share-file-button";
+import { DeleteProjectButton } from "@/components/delete-project-button";
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,15 +33,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       </Link>
       <div className="mt-2 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{project.name}</h1>
-        {project.assets.length > 0 && (
-          <a
-            href={`/api/projects/${project.id}/export`}
-            download
-            className="text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400"
-          >
-            Export whole project
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          {project.assets.length > 0 && (
+            <a
+              href={`/api/projects/${project.id}/export`}
+              download
+              className="text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400"
+            >
+              Export whole project
+            </a>
+          )}
+          <DeleteProjectButton projectId={project.id} projectName={project.name} redirectTo="/" />
+        </div>
       </div>
 
       {(project.venue || project.eventDate || project.notes || project.tags.length > 0) && (
