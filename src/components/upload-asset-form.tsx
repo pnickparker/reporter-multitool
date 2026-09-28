@@ -46,6 +46,12 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
    * few MB, far below a typical phone recording, so the file's bytes can
    * never pass through our own server on the way in.
    */
+  // Multiple of 256KB as Google's resumable upload protocol requires for
+  // all but the final chunk, and safely under Vercel's ~4.5MB request body
+  // limit (Google's endpoint itself refuses direct cross-origin browser
+  // uploads, so chunks are relayed through our own same-origin server).
+  const CHUNK_SIZE = 4 * 1024 * 1024;
+
   async function submitMedia(file: File) {
     setProgressLabel("Starting upload…");
     const initRes = await fetch(`${endpoint}/init`, {
@@ -59,16 +65,37 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
     }
     const { assetId, uploadUrl, projectId } = await initRes.json();
 
-    setProgressLabel("Uploading to Drive…");
-    const putRes = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type || "application/octet-stream" },
-      body: file,
-    });
-    if (!putRes.ok) {
+    let driveFile: { id: string } | null = null;
+    let start = 0;
+    while (start < file.size) {
+      const end = Math.min(start + CHUNK_SIZE, file.size) - 1;
+      setProgressLabel(`Uploading… ${Math.round((start / file.size) * 100)}%`);
+
+      const chunkRes = await fetch("/api/uploads/chunk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-Upload-Url": uploadUrl,
+          "X-Range-Start": String(start),
+          "X-Range-End": String(end),
+          "X-Total-Size": String(file.size),
+        },
+        body: file.slice(start, end + 1),
+      });
+
+      if (chunkRes.status === 308) {
+        start = end + 1;
+        continue;
+      }
+      if (chunkRes.ok) {
+        driveFile = await chunkRes.json();
+        break;
+      }
       throw new Error("Upload to Drive failed partway through — try again");
     }
-    const driveFile = await putRes.json();
+    if (!driveFile) {
+      throw new Error("Upload to Drive failed partway through — try again");
+    }
 
     setProgressLabel("Finishing up…");
     const finalizeRes = await fetch(`/api/assets/${assetId}/finalize`, {
