@@ -10,6 +10,7 @@ import { ProjectDetailsForm } from "@/components/project-details-form";
 import { TagBadges } from "@/components/tag-badges";
 import { ShareFileButton } from "@/components/share-file-button";
 import { DeleteProjectButton } from "@/components/delete-project-button";
+import { EditableProjectTitle } from "@/components/editable-project-title";
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,7 +33,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         &larr; All projects
       </Link>
       <div className="mt-2 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{project.name}</h1>
+        <EditableProjectTitle projectId={project.id} name={project.name} />
         <div className="flex items-center gap-3">
           {project.assets.length > 0 && (
             <a
