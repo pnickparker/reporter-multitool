@@ -8,6 +8,7 @@ import { QuotesView } from "@/components/quotes-view";
 import { SocialPostsView } from "@/components/social-posts-view";
 import { ProjectDetailsForm } from "@/components/project-details-form";
 import { TagBadges } from "@/components/tag-badges";
+import { ShareFileButton } from "@/components/share-file-button";
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -87,6 +88,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   >
                     Export
                   </a>
+                )}
+                {asset.status === "READY" && asset.sourceFile && (
+                  <ShareFileButton assetId={asset.id} />
                 )}
                 <span className={asset.status === "ERROR" ? "text-red-600" : "text-zinc-500"}>
                   {asset.status}
