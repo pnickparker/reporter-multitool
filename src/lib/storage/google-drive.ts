@@ -29,6 +29,44 @@ export class GoogleDriveStorage implements StorageProvider {
 }
 
 /**
+ * Starts a Drive resumable upload session and returns the session URL the
+ * browser can PUT file bytes to directly — bypassing our own server (and its
+ * platform request-body-size limit) for large audio/video files. Only the
+ * small JSON metadata request goes through googleapis here; the file bytes
+ * never pass through this process.
+ */
+export async function createResumableUploadSession(
+  auth: OAuth2Client,
+  { fileName, mimeType, folderId }: { fileName: string; mimeType: string; folderId: string },
+): Promise<string> {
+  const { token } = await auth.getAccessToken();
+  const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json; charset=UTF-8",
+      "X-Upload-Content-Type": mimeType,
+    },
+    body: JSON.stringify({ name: fileName, parents: [folderId] }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to start Drive resumable upload session: ${res.status} ${await res.text()}`);
+  }
+
+  const location = res.headers.get("Location");
+  if (!location) throw new Error("Drive did not return a resumable upload session URL");
+  return location;
+}
+
+/** Downloads a Drive file's bytes — used to feed transcription for files uploaded via the resumable session above, since those bytes never passed through our server on the way in. */
+export async function downloadFile(auth: OAuth2Client, fileId: string): Promise<Buffer> {
+  const drive = google.drive({ version: "v3", auth });
+  const res = await drive.files.get({ fileId, alt: "media" }, { responseType: "arraybuffer" });
+  return Buffer.from(res.data as ArrayBuffer);
+}
+
+/**
  * Finds the app's folder in the user's Drive, creating it if it doesn't exist yet.
  * Called once during the OAuth connect flow — `drive.file` scope only grants
  * access to files/folders the app itself creates, so this folder must exist

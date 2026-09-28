@@ -29,6 +29,17 @@ Since Vercel's `DATABASE_URL` points at the same Supabase database as local dev,
 
 Also shipped: the file-picker field itself was restyled from the tiny default "Choose File / no file selected" browser text into a large, clearly-labeled dashed tap target reading "Create or Select New File" (shows the picked filename once chosen), with more visual separation from the "Upload" button — this was a real mis-tap complaint from live-device testing, not speculative.
 
+**Found and fixed 2026-09-28: real video uploads failed on Vercel.** Nick's first real-device test — a 53-second, 52.4MB `.mov` from his Photo Library — failed with a generic "Upload failed." Root cause: Vercel's serverless functions hard-cap request bodies at roughly 4.5MB, a platform limit that applies on every plan and isn't specific to this app (most serverless hosts have something similar) — any real phone video was always going to exceed it, even though local dev (no such limit) and the earlier synthetic test clip (audio-only, tiny) never surfaced it.
+
+**Fix: audio/video now uploads directly from the browser to Google Drive**, bypassing our server for the file's bytes entirely:
+- `POST /api/quick-capture/init` or `POST /api/projects/[id]/assets/init` — small JSON request (filename + MIME type only) creates the `Asset` row and a Drive resumable-upload session, returning that session URL to the browser. `AssetType` (AUDIO vs VIDEO) is inferred here from the MIME type. New: `createResumableUploadSession()` in `src/lib/storage/google-drive.ts` (a raw REST call — the `googleapis` client library doesn't expose "just give me the session URL").
+- The browser then `PUT`s the file straight to that Drive URL — never touches our server.
+- `POST /api/assets/[id]/finalize` — small JSON request (just the resulting Drive file ID) records where the file landed and kicks off transcription via `after()`, same as before.
+- Transcription itself is unchanged in shape but now starts by downloading the file back from Drive (new `downloadFile()` in `google-drive.ts`, feeding a new `downloadAndProcessTranscription()` wrapper in `src/lib/transcription/process.ts`) since the bytes never passed through our server on the way in. This download happens server-to-Google, not client-to-Vercel, so it isn't subject to the same body-size limit.
+- Notes and Documents are untouched — both are small enough that the original single-request upload is fine; only Audio/Video moved to the new flow.
+
+**Verified end-to-end locally** with a real Drive resumable session (init → direct PUT to `googleapis.com`, bypassing the Next.js server entirely → finalize → background download-from-Drive → AssemblyAI transcription → AI pipeline), via a synthetic `say`-generated `.mov` — transcript came back correct, asset reached `READY`. **Not yet verified:** whether a real mobile browser's `fetch()` will actually be allowed by CORS to `PUT` to `googleapis.com` — my local test used `curl`, which doesn't enforce browser CORS rules, so this is the one part of the fix that still needs a real-device test on Vercel before trusting it for the freelance testers. If CORS turns out to be a problem, the fallback is chunked uploads through our own server in pieces small enough to stay under the body-size limit — more complex, hold off building it unless the direct-to-Drive approach actually fails in the browser.
+
 **Working end-to-end, tested with real recordings:**
 - Google OAuth + Drive connection (one connected account, app-created "Reporter Multi-Tool" folder)
 - Project creation + browsing (home page)

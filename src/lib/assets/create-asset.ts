@@ -1,10 +1,15 @@
 import { after } from "next/server";
-import type { Asset, GoogleDriveConnection } from "@prisma/client";
+import type { Asset, AssetType, GoogleDriveConnection } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getDriveClientForUser } from "@/lib/google/drive-client";
-import { GoogleDriveStorage } from "@/lib/storage/google-drive";
-import { processTranscription } from "@/lib/transcription/process";
+import { GoogleDriveStorage, createResumableUploadSession } from "@/lib/storage/google-drive";
+import { processTranscription, downloadAndProcessTranscription } from "@/lib/transcription/process";
 import { errorMessage } from "@/lib/error-message";
+
+export function defaultProjectName(): string {
+  const date = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return `Quick Capture — ${date}`;
+}
 
 export class AssetUploadError extends Error {
   constructor(
@@ -71,6 +76,53 @@ async function handleNoteUpload(asset: Asset, text: string, user: CurrentUser) {
     where: { id: asset.id },
     data: { sourceFile: uploaded.id, status: "READY" },
   });
+}
+
+/**
+ * Starts a direct-to-Drive upload for a large audio/video file — the file's
+ * bytes will go straight from the browser to Drive, bypassing our server
+ * (and its platform request-size limit) entirely. Returns the session URL
+ * for the browser to PUT the file to, plus the asset row it can report
+ * progress against.
+ */
+export async function initMediaUpload(
+  projectId: string,
+  input: { fileName: string; mimeType: string },
+  user: CurrentUser,
+) {
+  const type: AssetType = input.mimeType.startsWith("audio/") ? "AUDIO" : "VIDEO";
+
+  const asset = await prisma.asset.create({
+    data: { projectId, type, sourceFile: "", status: "UPLOADING" },
+  });
+
+  try {
+    const auth = getDriveClientForUser(user.id, user.driveConnection);
+    const uploadUrl = await createResumableUploadSession(auth, {
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      folderId: user.driveConnection.driveFolderId,
+    });
+    return { assetId: asset.id, uploadUrl };
+  } catch (err) {
+    await prisma.asset.update({
+      where: { id: asset.id },
+      data: { status: "ERROR", errorMessage: errorMessage(err) },
+    });
+    throw new AssetUploadError("Failed to start upload", 500);
+  }
+}
+
+/** Called once the browser has finished PUTting the file straight to Drive — records where it landed and kicks off transcription. */
+export async function finalizeMediaUpload(assetId: string, driveFileId: string, user: CurrentUser) {
+  const updated = await prisma.asset.update({
+    where: { id: assetId },
+    data: { sourceFile: driveFileId, status: "TRANSCRIBING" },
+  });
+
+  after(() => downloadAndProcessTranscription(assetId, driveFileId, user));
+
+  return updated;
 }
 
 /**

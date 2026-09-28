@@ -3,9 +3,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-type AssetType = "AUDIO" | "VIDEO" | "DOCUMENT" | "NOTE";
-
-/** UI-level grouping — Audio and Video share one picker since a video recording captures audio too, and the OS camera app is the only reliable native recorder file inputs can reach. The actual AssetType (AUDIO vs VIDEO) is inferred from the picked file's MIME type at submit time. */
+/** UI-level grouping — Audio and Video share one picker since a video recording captures audio too, and the OS camera app is the only reliable native recorder file inputs can reach. The actual AssetType (AUDIO vs VIDEO) is inferred server-side from the picked file's MIME type. */
 type UiType = "MEDIA" | "DOCUMENT" | "NOTE";
 
 const UI_TYPE_LABELS: Record<UiType, string> = {
@@ -18,10 +16,6 @@ const ACCEPT_BY_UI_TYPE: Record<Exclude<UiType, "NOTE">, string> = {
   MEDIA: "video/*,audio/*",
   DOCUMENT: "image/*,application/pdf",
 };
-
-function mediaAssetType(file: File): AssetType {
-  return file.type.startsWith("audio/") ? "AUDIO" : "VIDEO";
-}
 
 interface UploadAssetFormProps {
   /** Where to POST the form data — a per-project upload or /api/quick-capture. */
@@ -37,50 +31,113 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
   const [noteText, setNoteText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [progressLabel, setProgressLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function resetForm() {
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setNoteText("");
+    setFileName(null);
+  }
+
+  /**
+   * Audio/video goes straight from the browser to Drive via a resumable
+   * upload session — Vercel's serverless functions cap request bodies at a
+   * few MB, far below a typical phone recording, so the file's bytes can
+   * never pass through our own server on the way in.
+   */
+  async function submitMedia(file: File) {
+    setProgressLabel("Starting upload…");
+    const initRes = await fetch(`${endpoint}/init`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, mimeType: file.type || "application/octet-stream" }),
+    });
+    if (!initRes.ok) {
+      const data = await initRes.json().catch(() => ({}));
+      throw new Error(data.error ?? "Couldn't start upload");
+    }
+    const { assetId, uploadUrl, projectId } = await initRes.json();
+
+    setProgressLabel("Uploading to Drive…");
+    const putRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+    if (!putRes.ok) {
+      throw new Error("Upload to Drive failed partway through — try again");
+    }
+    const driveFile = await putRes.json();
+
+    setProgressLabel("Finishing up…");
+    const finalizeRes = await fetch(`/api/assets/${assetId}/finalize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ driveFileId: driveFile.id }),
+    });
+    if (!finalizeRes.ok) {
+      const data = await finalizeRes.json().catch(() => ({}));
+      throw new Error(data.error ?? "Upload finished but couldn't be saved");
+    }
+
+    return { ...(await finalizeRes.json()), projectId };
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-
-    const formData = new FormData();
+    setError(null);
 
     if (uiType === "NOTE") {
       if (noteText.trim().length === 0) {
         setError("Type or paste a note first");
         return;
       }
-      formData.append("type", "NOTE");
-      formData.append("text", noteText);
-    } else {
-      const file = fileInputRef.current?.files?.[0];
-      if (!file) {
-        setError("Choose a file first");
-        return;
-      }
-      formData.append("type", uiType === "MEDIA" ? mediaAssetType(file) : "DOCUMENT");
-      formData.append("file", file);
-    }
-
-    setUploading(true);
-    setError(null);
-
-    const res = await fetch(endpoint, { method: "POST", body: formData });
-    setUploading(false);
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Upload failed");
+    } else if (!fileInputRef.current?.files?.[0]) {
+      setError("Choose a file first");
       return;
     }
 
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setNoteText("");
-    setFileName(null);
+    setUploading(true);
 
-    if (onSuccess) {
-      onSuccess(await res.json());
-    } else {
-      router.refresh();
+    try {
+      let result: { projectId: string };
+
+      if (uiType === "MEDIA") {
+        result = await submitMedia(fileInputRef.current!.files![0]);
+      } else if (uiType === "NOTE") {
+        const formData = new FormData();
+        formData.append("type", "NOTE");
+        formData.append("text", noteText);
+        const res = await fetch(endpoint, { method: "POST", body: formData });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? "Upload failed");
+        }
+        result = await res.json();
+      } else {
+        const formData = new FormData();
+        formData.append("type", "DOCUMENT");
+        formData.append("file", fileInputRef.current!.files![0]);
+        const res = await fetch(endpoint, { method: "POST", body: formData });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? "Upload failed");
+        }
+        result = await res.json();
+      }
+
+      resetForm();
+      if (onSuccess) {
+        onSuccess(result);
+      } else {
+        router.refresh();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      setProgressLabel(null);
     }
   }
 
@@ -128,7 +185,7 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
         disabled={uploading}
         className="mt-4 self-start rounded bg-zinc-900 px-6 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
       >
-        {uploading ? "Saving…" : uiType === "NOTE" ? "Save note" : "Upload"}
+        {uploading ? (progressLabel ?? "Saving…") : uiType === "NOTE" ? "Save note" : "Upload"}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </form>

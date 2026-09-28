@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { createAssetFromFormData, AssetUploadError } from "@/lib/assets/create-asset";
-
-function defaultProjectName(): string {
-  const date = new Date().toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  return `Quick Capture — ${date}`;
-}
+import { createAssetFromFormData, AssetUploadError, defaultProjectName } from "@/lib/assets/create-asset";
 
 /**
  * Capture with no project required first (per the Product Plan's "capture
