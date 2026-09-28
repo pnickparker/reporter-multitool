@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { CreateProjectForm } from "@/components/create-project-form";
 import { TagBadges } from "@/components/tag-badges";
 import { DeleteProjectButton } from "@/components/delete-project-button";
+import { ProjectRowHeader } from "@/components/project-row-header";
 
 export default async function Home({
   searchParams,
@@ -62,10 +63,11 @@ export default async function Home({
             key={project.id}
             className="rounded border border-zinc-200 px-4 py-3 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
           >
-            <Link href={`/projects/${project.id}`} className="flex items-center justify-between">
-              <span>{project.name}</span>
-              <span className="text-sm text-zinc-500">{project._count.assets} asset(s)</span>
-            </Link>
+            <ProjectRowHeader
+              projectId={project.id}
+              name={project.name}
+              assetCount={project._count.assets}
+            />
             <div className="mt-2 flex items-center justify-between">
               {project.tags.length > 0 ? <TagBadges tags={project.tags} /> : <span />}
               <DeleteProjectButton projectId={project.id} projectName={project.name} />
