@@ -30,6 +30,7 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<AssetType>("AUDIO");
   const [noteText, setNoteText] = useState("");
+  const [fileName, setFileName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,6 +69,7 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
 
     if (fileInputRef.current) fileInputRef.current.value = "";
     setNoteText("");
+    setFileName(null);
 
     if (onSuccess) {
       onSuccess(await res.json());
@@ -98,19 +100,29 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
           className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
         />
       ) : (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={ACCEPT_BY_TYPE[type]}
-          className="text-sm"
-        />
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="asset-file-input"
+            className="cursor-pointer rounded border border-dashed border-zinc-400 px-4 py-6 text-center text-base font-medium text-zinc-700 hover:border-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:border-zinc-400 dark:hover:bg-zinc-800"
+          >
+            {fileName ?? "Create or Select New File"}
+          </label>
+          <input
+            id="asset-file-input"
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPT_BY_TYPE[type]}
+            className="sr-only"
+            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+          />
+        </div>
       )}
       <button
         type="submit"
         disabled={uploading}
-        className="self-start rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+        className="mt-4 self-start rounded bg-zinc-900 px-6 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
       >
-        {uploading ? "Saving…" : type === "NOTE" ? "Save note" : "Upload to Drive"}
+        {uploading ? "Saving…" : type === "NOTE" ? "Save note" : "Upload"}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </form>
