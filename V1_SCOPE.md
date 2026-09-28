@@ -14,6 +14,12 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 
 **Next step when resuming:** figure out why zero deployments exist despite the project being connected to GitHub, and trigger the first real one. Options to try: (a) find an unfiltered view of the Deployments tab (the stuck filter chips may just need a page refresh, same fix that worked earlier for frozen form fields), (b) check the project's Git settings to confirm it's actually tracking the `main` branch, (c) as a fallback, push a trivial new commit to `main` to force Vercel's git-integration auto-deploy to fire. Once a deployment succeeds: visit the site, Nick connects his Google Drive first (before sharing the passphrase with testers, so `getCurrentUser()` resolves to him — see the `orderBy: createdAt: asc` hardening already in place), confirm the app works end-to-end on the real URL, then share the URL + passphrase with the two testers.
 
+## Status as of 2026-09-28 (end of day) — ready to hand off to the two testers
+
+**Confirmed working on Nick's actual iPhone**, not just locally: a 12-second and the previously-failing 53-second/52.4MB video both uploaded successfully through the chunked-relay fix, transcribed, and exported correctly. This is the first real-device confirmation of the whole capture → transcribe → export chain since deployment, and it's the green light to bring in the two freelance testers.
+
+**Before sending the link out**, the two open capture-UX questions from earlier today (see above: the Audio/Video merge, and whether radio-then-picker is one tap too many) are exactly what this testing round should surface — worth explicitly asking the testers about both rather than waiting to see if they mention it unprompted.
+
 ## Status as of 2026-09-28 — deployed and live
 
 **The Vercel deployment is done and working end-to-end.** Root cause of the earlier stuck/failed deploys turned out to be a bulk-paste of environment variables that silently saved several as empty: `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ASSEMBLYAI_API_KEY`, and eventually `SITE_PASSPHRASE` too (found last, once login itself started rejecting the correct phrase). All were re-entered fresh from their sources and the deploy succeeded. Two other real fixes along the way, both now committed:
