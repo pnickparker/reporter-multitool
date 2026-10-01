@@ -56,15 +56,22 @@ enum AssetStatus {
 }
 
 model Asset {
-  id           String      @id @default(cuid())
-  projectId    String
-  project      Project     @relation(fields: [projectId], references: [id])
-  type         AssetType
-  sourceFile   String
-  duration     Int?
-  uploadedAt   DateTime    @default(now())
-  status       AssetStatus @default(UPLOADING)
-  errorMessage String?
+  id            String      @id @default(cuid())
+  projectId     String
+  project       Project     @relation(fields: [projectId], references: [id])
+  type          AssetType
+  sourceFile    String
+  /**
+   * Seconds — from Drive's videoMediaMetadata when available (video only; Drive doesn't expose audio duration).
+   */
+  duration      Int?
+  /**
+   * Bytes — from Drive's file metadata, captured at finalize time to estimate processing time before attempting transcription. Assumes realistic reporter-clip sizes (well under 2GB); revisit the type if that ever stops holding.
+   */
+  fileSizeBytes Int?
+  uploadedAt    DateTime    @default(now())
+  status        AssetStatus @default(UPLOADING)
+  errorMessage  String?
 
   transcript    Transcript?
   flaggedQuotes FlaggedQuote[]

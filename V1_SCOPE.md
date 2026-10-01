@@ -34,6 +34,23 @@ Confirmed with real data: the stuck video (`20260930_202038.mp4`) is **274.7MB a
 
 Separately — not a code fix, just worth knowing: a reporter's recording is very likely *already* safe on their own phone regardless of what our app does with it, since tapping "Take Video" opens the phone's native camera app, which saves to the Camera Roll/Gallery as a side effect of that native capture flow, independent of our upload succeeding. This is standard iOS/Android behavior, not something built or verified in this codebase — worth having the testers confirm for themselves on their own devices rather than taking it purely on faith.
 
+**Built: a real processing-time limit, checked proactively instead of discovered by timing out.** Prompted by Nick wanting to (a) account for not knowing a tester's camera resolution, (b) give reporters a clear path forward instead of a silent trap when a clip is too big, and (c) keep the limit easy to adjust later — including per-tier, if this becomes a paid product with e.g. a 10-minute free tier and a 30-minute paid one.
+
+- Drive reports a file's real size (always) and video duration (when the file actually has a video stream) the moment it finishes uploading — we just weren't capturing it. `Asset` gained `fileSizeBytes` (new column) alongside the already-existing but previously-unused `duration` (seconds); both get populated at finalize time regardless of outcome, via new `getFileStats()` in `google-drive.ts`.
+- New `src/lib/assets/processing-limits.ts` is the single place that answers "will this fit" — deliberately separate from Vercel's hard 300s ceiling (`maxDuration`, fixed, invisible to users, same for everyone) vs. this **softer, product-level number we choose to sell/allow** (`MAX_ESTIMATED_PROCESSING_SECONDS = 260`, picked so a 10-minute video clears with real margin while 15+ minutes gets rejected — see the worked table below). This is the one constant to change for a future paid tier; everything else in the pipeline is agnostic to what the limit actually is.
+- `finalizeMediaUpload` now checks the estimate *before* committing to transcribe — if it's predicted to exceed the limit, the asset goes straight to `ERROR` with an immediate, specific, actionable message (*"too long/large to process automatically right now... tap Share to grab the original, or trim it and try again"*) instead of silently timing out 4+ minutes later with nothing to show for it. Because `sourceFile` is set either way, Share works immediately in this case too (see above).
+- Calibration is honest about its limits: built from exactly two real data points (Travis's real video, and a synthetic long clip), padded modestly for safety margin, documented inline as due for recalibration once more real field data comes in — not presented as more precise than it is.
+
+**Verified, not just typechecked:** ran the real chunked-upload pipeline locally three times — once normally (confirms `fileSizeBytes`/`duration` now populate and the happy path is unaffected), and once with the threshold temporarily forced absurdly low to confirm the rejection branch actually fires correctly (immediate `ERROR`, correct message, no wasted AssemblyAI/Claude calls, `sourceFile` still set) before restoring the real value. Also checked the calibrated numbers against a table of hypothetical clip lengths at Travis's video's real bitrate:
+
+| Length | Est. size | Estimated time | Outcome |
+|---|---|---|---|
+| Travis's real clip (2:56) | 274.7MB | 78s | allowed (matches reality — it worked once given time) |
+| 10 min | ~936MB | 218s | allowed, ~16% margin |
+| 15 min | ~1.4GB | 317s | rejected |
+| 20 min | ~1.9GB | 422s | rejected |
+| 60 min | ~5.6GB | 1,207s | rejected |
+
 ## Status as of 2026-09-28 (end of day) — ready to hand off to the two testers
 
 **Confirmed working on Nick's actual iPhone**, not just locally: a 12-second and the previously-failing 53-second/52.4MB video both uploaded successfully through the chunked-relay fix, transcribed, and exported correctly. This is the first real-device confirmation of the whole capture → transcribe → export chain since deployment, and it's the green light to bring in the two freelance testers.

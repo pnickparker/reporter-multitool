@@ -66,6 +66,21 @@ export async function downloadFile(auth: OAuth2Client, fileId: string): Promise<
   return Buffer.from(res.data as ArrayBuffer);
 }
 
+/** File size (and video duration, when Drive has it — not exposed for audio) for a just-uploaded file, read before committing to transcribe it. */
+export async function getFileStats(
+  auth: OAuth2Client,
+  fileId: string,
+): Promise<{ fileSizeBytes: number | null; durationSeconds: number | null }> {
+  const drive = google.drive({ version: "v3", auth });
+  const res = await drive.files.get({ fileId, fields: "size, videoMediaMetadata" });
+  return {
+    fileSizeBytes: res.data.size ? Number(res.data.size) : null,
+    durationSeconds: res.data.videoMediaMetadata?.durationMillis
+      ? Math.round(Number(res.data.videoMediaMetadata.durationMillis) / 1000)
+      : null,
+  };
+}
+
 /**
  * Finds the app's folder in the user's Drive, creating it if it doesn't exist yet.
  * Called once during the OAuth connect flow — `drive.file` scope only grants

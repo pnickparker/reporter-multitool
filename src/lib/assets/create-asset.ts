@@ -2,9 +2,10 @@ import { after } from "next/server";
 import type { Asset, AssetType, GoogleDriveConnection } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getDriveClientForUser } from "@/lib/google/drive-client";
-import { GoogleDriveStorage, createResumableUploadSession } from "@/lib/storage/google-drive";
+import { GoogleDriveStorage, createResumableUploadSession, getFileStats } from "@/lib/storage/google-drive";
 import { processTranscription, downloadAndProcessTranscription } from "@/lib/transcription/process";
 import { errorMessage } from "@/lib/error-message";
+import { estimateProcessingSeconds, exceedsProcessingLimit } from "@/lib/assets/processing-limits";
 
 export function defaultProjectName(): string {
   const date = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -113,11 +114,40 @@ export async function initMediaUpload(
   }
 }
 
-/** Called once the browser has finished PUTting the file straight to Drive — records where it landed and kicks off transcription. */
+/**
+ * Called once the browser has finished PUTting the file straight to Drive.
+ * Before committing to transcribe it, checks the file's real size/duration
+ * (from Drive's own metadata) against our processing-time estimate — a
+ * silent Vercel timeout (see processing-limits.ts) is worse than an
+ * immediate, honest "this one's too big" that still leaves the reporter
+ * able to grab their original file via Share.
+ */
 export async function finalizeMediaUpload(assetId: string, driveFileId: string, user: CurrentUser) {
+  const auth = getDriveClientForUser(user.id, user.driveConnection);
+  const stats = await getFileStats(auth, driveFileId);
+
+  if (exceedsProcessingLimit(stats)) {
+    const estimatedSeconds = Math.round(estimateProcessingSeconds(stats));
+    return prisma.asset.update({
+      where: { id: assetId },
+      data: {
+        sourceFile: driveFileId,
+        duration: stats.durationSeconds,
+        fileSizeBytes: stats.fileSizeBytes,
+        status: "ERROR",
+        errorMessage: `This recording is too long/large to process automatically right now (estimated ~${estimatedSeconds}s to process). The file is already safely saved — tap Share to grab the original, or trim it and try again.`,
+      },
+    });
+  }
+
   const updated = await prisma.asset.update({
     where: { id: assetId },
-    data: { sourceFile: driveFileId, status: "TRANSCRIBING" },
+    data: {
+      sourceFile: driveFileId,
+      duration: stats.durationSeconds,
+      fileSizeBytes: stats.fileSizeBytes,
+      status: "TRANSCRIBING",
+    },
   });
 
   after(() => downloadAndProcessTranscription(assetId, driveFileId, user));
