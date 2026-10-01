@@ -68,3 +68,16 @@ Nick also clarified "sell it a little bit": not an attempt at a real self-serve 
 Because step 2 is effectively Nick's public demo moment (not a quiet pilot anymore), the product needs to be solid *before* that step, not just "good enough for two friendly testers" — reliability bugs (like the Travis stuck-video issue from today) are fine to hit quietly now and would land much worse in front of an industry audience.
 
 **Still genuinely open:** the exact number/revenue/timeframe for "enough" at step 1 before moving to step 2 — and the realistic outcome size even with a strong relationship (a close friendship changes the conversation, not what the product itself is actually worth — worth staying honest about that).
+
+## Timeline and decision checkpoints (added 2026-10-01)
+
+Nick is new to running a software business and correctly flagged that the open numbers above ("how many clients is enough," "what revenue before approaching associations") aren't things to guess at — they need actual research. This section is the timeline for *when* to go find those answers, not the answers themselves. Revisit and fill in as research happens; don't treat the placeholder numbers below as decided.
+
+| Phase | What's happening | Checkpoint question | How to actually answer it (not a guess) |
+|---|---|---|---|
+| **Now — field testing** | Travis + one Android tester, v1 build, real field use | Is the core workflow reliable enough to charge anyone money for it? | Direct tester feedback, not a timer. Don't move on until bug reports taper off to normal-use-level, not "surprising failure" level (the Travis stuck-video bug was the surprising kind — fixed; watch for more of that kind). |
+| **Warm prospects** | Small publishers Nick knows personally, industry friends | How many paying clients, at what price, is "enough" to feel ready for association-level visibility? | This is a real unknown — research it rather than pick a number out of the air. Concrete ways to find out: ask the news-media consultants Nick already has ties to how they'd evaluate readiness; ask Mo Press/LMA contacts informally (before pitching) what proof points they'd actually want to see from a tool before recommending it to members; look at how comparable tools (Trint, Descript, Otter, or smaller newsroom-specific tools) built early credibility before wider launches. |
+| **Associations** | Mo Press Assoc., LMA, consultants | Is the product/support actually ready for an audience that can amplify fast, not just a few friendly users? | Stress-test against the real usage patterns that come up during the warm-prospect phase (longer interviews than expected, different phone models, spottier field connectivity) rather than assuming the current tester feedback already covers it. |
+| **BLOX conversation** | Triggered by reaching the associations step | Is this a pitch, a pilot offer, or just "wanted you to hear it from me first"? | Not a research question — a personal/relationship judgment call Nick is better positioned to make in the moment than to pre-script now. |
+
+**How to use this table:** when a checkpoint question comes up for real (e.g., once there are a couple of paying warm-prospect clients and the association step starts feeling close), that's the trigger to go do the research in the third column — not to guess, and not to keep deferring indefinitely either.
