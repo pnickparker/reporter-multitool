@@ -60,9 +60,11 @@ Nick also clarified "sell it a little bit": not an attempt at a real self-serve 
 
 **Decided (2026-10-01): staying quiet to BLOX — the friend COO and his direct working contact there — for now, deliberately.** Nick has told neither of them about this project or the sports/coach-input tool, specifically to avoid the IP/conflict-of-interest blur above. He's explicit this is a tightrope, not a risk-free choice. The real risk flagged back to him: the window to be the one who raises it himself shrinks as this gets more real — once there's revenue from multiple newsrooms, the odds BLOX hears about it secondhand (small local-news-tech world, LION Publishers, word of mouth) go up, and that lands worse than hearing it from Nick directly. Worth having a rough personal trigger for when silence should end, even though today isn't that day.
 
-**Still genuinely open:**
-1. ~~What's the actual catalyst for an acquisition conversation~~ — answered: an existing warm relationship, not a cold one.
-2. ~~Is BLOX the best strategic fit, or the most familiar one~~ — answered: both; the relationship is real and substantive, not just CMS-customer familiarity.
-3. What does "sell it a little bit" mean as a concrete target — how many newsrooms, what revenue, what timeframe — before either pitching BLOX directly or waiting for them to notice? Still no number attached.
-4. Realistic outcomes for a deal like this are still probably modest (consistent with "solid side business, not venture-scale" above) — worth staying honest about that even with a strong relationship in place, since a close friendship doesn't change what the product itself is actually worth.
-5. ~~Does Nick's time budget support this~~ — partially answered: he's already decided against the full SaaS-business path for exactly this capacity reason, which is itself the right-sized decision given everything above.
+**Go-to-market sequence (2026-10-01):**
+1. A short list of warm prospects first: small news publishers like Link 2 Lee's Summit, and industry friends — aiming for a few paying users. No exact number set yet; worth picking even a rough one (3-5?) so the threshold is recognizable rather than indefinite.
+2. Then, if/when it's going well: Missouri Press Association, the Local Media Association (LMA), and a few news-media consultants Nick has ties to. This step is a real visibility jump, not just "more of the same" — trade associations mean word travels fast among exactly the target market.
+3. **Talking to the associations is the trigger to finally tell the BLOX friend/COO**, before he could plausibly hear about it secondhand. Deliberately sequenced so BLOX hears it from Nick first.
+
+Because step 2 is effectively Nick's public demo moment (not a quiet pilot anymore), the product needs to be solid *before* that step, not just "good enough for two friendly testers" — reliability bugs (like the Travis stuck-video issue from today) are fine to hit quietly now and would land much worse in front of an industry audience.
+
+**Still genuinely open:** the exact number/revenue/timeframe for "enough" at step 1 before moving to step 2 — and the realistic outcome size even with a strong relationship (a close friendship changes the conversation, not what the product itself is actually worth — worth staying honest about that).
