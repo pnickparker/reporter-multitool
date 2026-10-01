@@ -94,9 +94,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     Export
                   </a>
                 )}
-                {asset.status === "READY" && asset.sourceFile && (
-                  <ShareFileButton assetId={asset.id} />
-                )}
+                {asset.sourceFile && <ShareFileButton assetId={asset.id} />}
                 <span className={asset.status === "ERROR" ? "text-red-600" : "text-zinc-500"}>
                   {asset.status}
                 </span>
