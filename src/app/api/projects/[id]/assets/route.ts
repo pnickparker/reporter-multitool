@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { createAssetFromFormData, AssetUploadError } from "@/lib/assets/create-asset";
 
+/** POST here can still trigger transcription via after() for AUDIO/VIDEO — see the same note in /api/assets/[id]/finalize/route.ts. */
+export const maxDuration = 300;
+
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const assets = await prisma.asset.findMany({

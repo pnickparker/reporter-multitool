@@ -3,6 +3,16 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { finalizeMediaUpload } from "@/lib/assets/create-asset";
 
+/**
+ * Vercel's default function duration is far too short for the background
+ * work this route kicks off via after() — downloading a large video from
+ * Drive, transcribing it, then running the AI pipeline. 300s is the max
+ * allowed on a Pro plan; a real clip got silently killed mid-transcription
+ * with no error recorded before this was set (see V1_SCOPE.md, Travis's
+ * 274MB/176s video, 2026-10-01).
+ */
+export const maxDuration = 300;
+
 /** Called once the browser has finished PUTting a file straight to Drive (see /api/quick-capture/init and /api/projects/[id]/assets/init) — records where it landed and kicks off transcription. */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: assetId } = await params;

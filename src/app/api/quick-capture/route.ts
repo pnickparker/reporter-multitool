@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { createAssetFromFormData, AssetUploadError, defaultProjectName } from "@/lib/assets/create-asset";
 
+/** This route's createAssetFromFormData can still trigger transcription via after() for AUDIO/VIDEO — see the same note in /api/assets/[id]/finalize/route.ts. */
+export const maxDuration = 300;
+
 /**
  * Capture with no project required first (per the Product Plan's "capture
  * must never wait on organization" principle) — creates a default-named
