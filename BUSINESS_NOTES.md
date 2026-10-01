@@ -42,3 +42,19 @@ These notes aren't legal advice. Confirm the Anthropic, Google, AssemblyAI and V
 1. Election tracker, sold as a service, first (clear value, April 2027 deadline).
 2. This app, once accounts and security are done.
 3. Sports tool.
+
+## Exit thinking: build-to-sell-a-little, then acquired (added 2026-10-01)
+
+Nick's actual mental model, said out loud for the first time in this conversation: build this, get it into real use at a handful of newsrooms, and the realistic endgame is a larger newsroom-tech vendor acquiring it to fold into their own product line — not scaling it into a standalone SaaS business with hundreds of self-serve customers. BLOX Digital (TownNews) is the specific company he's had in the back of his mind, likely because Link 2 Lee's Summit is already a BLOX customer.
+
+**How this reshuffles the "before a paying customer" checklist above, not replaces it:**
+- An acquirer re-platforms onto their own infrastructure regardless of what this runs on today — so there's little reason to prematurely over-build storage/hosting for "enterprise scale" before there's real traction. The Google Drive choice stays fine under this plan; it's not a liability to clean up before a sale conversation.
+- What due diligence *does* scrutinize: real per-customer data isolation (not everyone sharing one Drive account — already item 1 above), clean IP/ownership story (already covered above), recording consent, and the misquote-protection human-review safeguard. Those items don't get less important under this plan — if anything, they're the credibility signals that matter more than infrastructure polish.
+- The full self-serve SaaS buildout (public Google OAuth verification, billing/tiers, a signup page) may not be necessary at all if customers are onboarded by hand in small numbers rather than through self-service — worth deciding deliberately rather than defaulting to building it.
+
+**Open questions raised back to Nick, not yet answered (worth revisiting before this becomes the actual plan):**
+1. What's the actual catalyst for an acquisition conversation — BLOX noticing a competitive gap on their own, Nick actively pitching it to them, or organic traction/press (LION Publishers, case studies) that draws attention? Each implies different near-term priorities.
+2. Is BLOX the best strategic fit, or the most familiar one (since Nick is already their CMS customer)? Worth naming other plausible acquirers/partners (other newsroom CMS vendors, transcription players looking for a newsroom wedge, journalism foundations) before anchoring on one.
+3. What does "sell it a little bit" concretely mean as a target before shopping it around — how many paying newsrooms, what revenue, what timeframe? Without a number, this risks staying an indefinite someday-plan.
+4. Realistic outcomes for a niche, founder-built tool with modest revenue are usually modest too (small acquihire-style deals, not a windfall) — consistent with the "solid side business, not venture-scale" framing above. Worth being honest with himself about whether that ceiling is the actual goal.
+5. Does Nick's time budget (he runs Link 2 Lee's Summit full-time) support the multi-year horizon this kind of outcome usually takes, or should this stay scoped as a tool for his own newsroom with upside optionality rather than an active sale effort right now?
