@@ -51,6 +51,8 @@ Separately — not a code fix, just worth knowing: a reporter's recording is ver
 | 20 min | ~1.9GB | 422s | rejected |
 | 60 min | ~5.6GB | 1,207s | rejected |
 
+**Nick passed the ~10-minute video guideline on to both testers (2026-10-01)** — Travis and the second (Android) tester are now field-testing with that real parameter in hand, backed by the enforced limit above rather than just a note.
+
 ## Status as of 2026-09-28 (end of day) — ready to hand off to the two testers
 
 **Confirmed working on Nick's actual iPhone**, not just locally: a 12-second and the previously-failing 53-second/52.4MB video both uploaded successfully through the chunked-relay fix, transcribed, and exported correctly. This is the first real-device confirmation of the whole capture → transcribe → export chain since deployment, and it's the green light to bring in the two freelance testers.
