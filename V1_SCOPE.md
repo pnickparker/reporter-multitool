@@ -24,6 +24,20 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 
 **Lesson to carry forward:** "committed" is not "deployed." Before telling testers a limit or fix is live, confirm it actually reached production — a cheap check is whether the new fields (`fileSizeBytes`) are being populated on fresh uploads.
 
+### Phase II thinking: clips from flagged quotes (2026-10-08, ideas only — nothing built)
+
+Nick's question: instead of a full Riverside-style auto-editor, can the app use the clip scoring to *mark* the good moments so a reporter can trim quickly in the phone's native apps? His instinct is that fast, social-ready clips published alongside a story would be a big deal; he's taking the question to testers.
+
+What exists today: each `FlaggedQuote` stores only a start `timestamp`, but `Transcript.segments` holds AssemblyAI's per-utterance start/end times, so in/out points (plus a little padding) are derivable with no new AI work. Honest limit: a web app can't inject markers into the iPhone Photos app or iMovie/CapCut — there's no hook for it. Realistic options, cheapest first:
+1. **Time ranges on each quote** (e.g. 1:42–2:05, copyable, included in exports). The reporter finds the spot and trims manually. No new infrastructure; mostly validates demand.
+2. **In-app preview with markers** — play the original with jump-to-moment, to confirm it's the right clip. Needs streaming from Drive (the current `/file` route loads the whole file into memory, fine for Share, not for playback).
+3. **Generate the trimmed clip files** and deliver them through the Share sheet — the version that delivers the "huge" benefit, since no trimming is needed. Needs video-cutting compute outside a Vercel function (FFmpeg worker or a media API) — a separate cost line (see BUSINESS_NOTES.md). The Product Plan already called for a feasibility spike before committing to this.
+Not solved by any of the above: social-ready also usually means vertical framing and burned-in captions, which is the genuinely heavy "auto-cut" territory.
+
+Data point that shapes this: tester uploads so far are roughly three-quarters audio (sports audio), so clips-from-video would apply to a minority of current uploads; audio would need an audiogram-style treatment (waveform + captions) instead.
+
+**Questions for testers:** (1) Do you shoot video at events, or mostly record audio? (2) For one story, how many clips would you post, on which platforms, how long? (3) Where do you cut video today (Photos, CapCut, InShot) and how long does a clip take? (4) Would start–end times save you real time, or only a finished clip ready to share? (5) Do captions and vertical framing matter to you? (6) Would you use an audio clip with waveform and captions if there's no video?
+
 ## Status as of 2026-10-01 — fixed: large videos silently stuck forever
 
 **Found and fixed: Travis (one of the two freelance testers) uploaded a real video that never transcribed and triggered nothing — no error, nothing in the UI, just silently stuck.** Confirmed in the database: the asset was frozen at `TRANSCRIBING` with `errorMessage: null` — meaning our own try/catch error handling never ran at all. That's the signature of something killing the process from the outside, not a bug in our code throwing an exception we'd normally catch.
