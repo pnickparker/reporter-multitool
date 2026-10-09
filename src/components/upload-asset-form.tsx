@@ -17,6 +17,33 @@ const ACCEPT_BY_UI_TYPE: Record<Exclude<UiType, "NOTE">, string> = {
   DOCUMENT: "image/*,application/pdf",
 };
 
+/**
+ * Reads a recording's length straight from the file in the browser — it only
+ * needs the header, so it's quick even for a big video. The server uses it to
+ * estimate processing time (Drive doesn't know a video's length until a while
+ * after upload, and never knows an audio file's). Gives up after a few
+ * seconds and returns null rather than hold up the upload.
+ */
+function readMediaDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const media = document.createElement(file.type.startsWith("audio/") ? "audio" : "video");
+    const finish = (value: number | null) => {
+      clearTimeout(timer);
+      media.removeAttribute("src");
+      media.load();
+      URL.revokeObjectURL(url);
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(null), 4000);
+    media.preload = "metadata";
+    media.onloadedmetadata = () =>
+      finish(Number.isFinite(media.duration) && media.duration > 0 ? media.duration : null);
+    media.onerror = () => finish(null);
+    media.src = url;
+  });
+}
+
 interface UploadAssetFormProps {
   /** Where to POST the form data — a per-project upload or /api/quick-capture. */
   endpoint: string;
@@ -56,6 +83,7 @@ export function UploadAssetForm({ endpoint, onSuccess, initialType = "MEDIA" }: 
 
   async function submitMedia(file: File) {
     setProgressLabel("Starting upload…");
+    const durationSeconds = await readMediaDuration(file);
     const initRes = await fetch(`${endpoint}/init`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -103,7 +131,7 @@ export function UploadAssetForm({ endpoint, onSuccess, initialType = "MEDIA" }: 
     const finalizeRes = await fetch(`/api/assets/${assetId}/finalize`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ driveFileId: driveFile.id }),
+      body: JSON.stringify({ driveFileId: driveFile.id, durationSeconds }),
     });
     if (!finalizeRes.ok) {
       const data = await finalizeRes.json().catch(() => ({}));

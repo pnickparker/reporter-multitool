@@ -23,11 +23,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Asset not found" }, { status: 404 });
   }
 
-  const { driveFileId } = await req.json();
+  const { driveFileId, durationSeconds } = await req.json();
   if (typeof driveFileId !== "string" || driveFileId.length === 0) {
     return NextResponse.json({ error: "driveFileId is required" }, { status: 400 });
   }
 
-  const updated = await finalizeMediaUpload(assetId, driveFileId, user);
+  // Advisory only (it feeds the processing-time estimate), but still sanity-checked.
+  const clientDuration =
+    typeof durationSeconds === "number" && Number.isFinite(durationSeconds) && durationSeconds > 0 && durationSeconds < 24 * 3600
+      ? Math.round(durationSeconds)
+      : null;
+
+  const updated = await finalizeMediaUpload(assetId, driveFileId, user, clientDuration);
   return NextResponse.json(updated);
 }
