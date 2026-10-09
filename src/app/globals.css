@@ -13,6 +13,8 @@
   --color-mint: #3ddc97;
   --color-mint-deep: #12332a;
   --color-danger: #ff8f8f;
+  --color-butter: #f6d365;
+  --color-butter-ink: #3b2a00;
 }
 
 @theme inline {

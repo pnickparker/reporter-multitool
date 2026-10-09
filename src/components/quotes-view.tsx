@@ -1,4 +1,4 @@
-import { SOCIAL_POST_SCORE_THRESHOLD } from "@/lib/ai/scoring";
+import { BUTTER_SCORE_THRESHOLD, SOCIAL_POST_SCORE_THRESHOLD } from "@/lib/ai/scoring";
 import { TextActions } from "@/components/text-actions";
 import { SeekChip } from "@/components/media-scope";
 
@@ -75,9 +75,17 @@ export function QuotesView({ quotes }: { quotes: Quote[] }) {
                 <p className="text-[17px] font-medium leading-relaxed">&ldquo;{q.text}&rdquo;</p>
                 <ScoreRing score={q.engagementScore} strong={strong} />
               </div>
-              <div className="mt-2 flex items-center gap-3">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
                 <SeekChip seconds={q.timestamp} label={formatTimestamp(q.timestamp)} />
                 {strong && <span className="text-xs font-bold text-mint">Post drafts generated</span>}
+                {q.engagementScore >= BUTTER_SCORE_THRESHOLD && (
+                  <span
+                    title={`Scored ${BUTTER_SCORE_THRESHOLD} or higher — one of the strongest quotes`}
+                    className="rounded-full bg-butter px-2.5 py-1 text-xs font-bold text-butter-ink"
+                  >
+                    Writes like butter
+                  </span>
+                )}
               </div>
               <p className="mt-2 text-[13px] leading-[19px] text-muted">{q.reason}</p>
               <TextActions text={q.text} label="quote" />
