@@ -81,7 +81,8 @@ function noteSection(heading: string, transcript: Transcript | null): string[] {
 function contentSections(heading: string, type: AssetType, asset: AssetWithContent): string[] {
   if (type === "NOTE") return noteSection(heading, asset.transcript);
   if (type === "DOCUMENT") {
-    return [`Reference document — [open in Drive](https://drive.google.com/file/d/${asset.sourceFile}/view).`, ""];
+    const kind = asset.mimeType?.startsWith("image/") ? "Photo" : "Reference document";
+    return [`${kind} — [open in Drive](https://drive.google.com/file/d/${asset.sourceFile}/view).`, ""];
   }
   return [
     ...transcriptSection(heading, asset.transcript),

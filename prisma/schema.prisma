@@ -69,6 +69,8 @@ model Asset {
    * Bytes — from Drive's file metadata, captured at finalize time to estimate processing time before attempting transcription. Assumes realistic reporter-clip sizes (well under 2GB); revisit the type if that ever stops holding.
    */
   fileSizeBytes Int?
+  /// The file's MIME type as the browser reported it at upload — lets the page tell a photo (image/*) from a PDF among DOCUMENT assets without changing the AssetType enum, which the live site's older code couldn't read.
+  mimeType      String?
   uploadedAt    DateTime    @default(now())
   status        AssetStatus @default(UPLOADING)
   errorMessage  String?

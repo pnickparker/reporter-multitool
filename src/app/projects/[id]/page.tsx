@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { UploadAssetForm } from "@/components/upload-asset-form";
+import { CaptureActions } from "@/components/capture-actions";
+import { PhotoPreview } from "@/components/photo-preview";
 import { AssetStatusPoller } from "@/components/asset-status-poller";
 import { TranscriptView } from "@/components/transcript-view";
 import { QuotesView } from "@/components/quotes-view";
@@ -98,12 +99,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       </div>
 
       <div className="mt-6">
-        <UploadAssetForm endpoint={`/api/projects/${project.id}/assets`} />
+        <CaptureActions endpoint={`/api/projects/${project.id}/assets`} layout="card" />
       </div>
 
       <ul className="mt-6 flex flex-col gap-4">
         {project.assets.map((asset) => {
           const playable = (asset.type === "AUDIO" || asset.type === "VIDEO") && !!asset.sourceFile;
+          const isPhoto = asset.type === "DOCUMENT" && !!asset.mimeType?.startsWith("image/") && !!asset.sourceFile;
           return (
             <li key={asset.id} className="rounded-3xl bg-surface p-4 text-sm">
               <MediaScope hasMedia={playable}>
@@ -111,7 +113,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   <div className="flex items-center gap-2.5">
                     <StatusDot state={STATUS_DOT[asset.status] ?? "idle"} />
                     <span className="font-bold">
-                      {TYPE_LABEL[asset.type] ?? asset.type} · {STATUS_LABEL[asset.status] ?? asset.status}
+                      {isPhoto ? "Photo" : (TYPE_LABEL[asset.type] ?? asset.type)} · {STATUS_LABEL[asset.status] ?? asset.status}
                     </span>
                   </div>
                   <div className="flex items-center">
@@ -140,7 +142,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     "Drive file: —"
                   )}
                 </p>
-                {playable && (asset.type === "AUDIO" || asset.type === "VIDEO") && (
+                {isPhoto && <PhotoPreview assetId={asset.id} />}
+              {playable && (asset.type === "AUDIO" || asset.type === "VIDEO") && (
                   <MediaPlayer assetId={asset.id} kind={asset.type} />
                 )}
                 {asset.status === "ERROR" && asset.errorMessage && (

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CaptureForm } from "@/components/capture-form";
+import { CaptureActions } from "@/components/capture-actions";
 
 export default async function CapturePage({
   searchParams,
@@ -7,7 +7,6 @@ export default async function CapturePage({
   searchParams: Promise<{ type?: string }>;
 }) {
   const { type } = await searchParams;
-  const initialType = type === "note" ? "NOTE" : type === "document" ? "DOCUMENT" : "MEDIA";
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-6">
@@ -19,9 +18,12 @@ export default async function CapturePage({
         No project needed — this creates one for you. Rename it or add details afterward.
       </p>
 
-      <div className="mt-6">
-        <CaptureForm initialType={initialType} />
-      </div>
+      <CaptureActions
+        endpoint="/api/quick-capture"
+        goToProject
+        layout="hero"
+        initialNoteOpen={type === "note"}
+      />
     </main>
   );
 }

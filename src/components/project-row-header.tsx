@@ -1,23 +1,22 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StatusDot, type DotState } from "@/components/status-dot";
+import { DeleteProjectButton } from "@/components/delete-project-button";
 
-/** A home page project row's name and actions — click the name to open the project, "Rename" to edit it in place. `deleteSlot` is the Delete button, passed in so it sits with the other actions. */
+/** A home page project row's name and actions — click the name to open the project, "Rename" to edit it in place, "Delete" to remove it. */
 export function ProjectRowHeader({
   projectId,
   name,
   assetCount,
   state,
-  deleteSlot,
 }: {
   projectId: string;
   name: string;
   assetCount: number;
   state: DotState;
-  deleteSlot: ReactNode;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -106,7 +105,7 @@ export function ProjectRowHeader({
           >
             Rename
           </button>
-          {deleteSlot}
+          <DeleteProjectButton projectId={projectId} projectName={name} />
         </div>
       </div>
     </div>

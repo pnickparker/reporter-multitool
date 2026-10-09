@@ -9,7 +9,7 @@ import { openFileStream } from "@/lib/storage/google-drive";
 export const maxDuration = 300;
 
 /**
- * Streams an audio/video asset for the in-app player, honoring Range
+ * Streams a recording, photo, or PDF for the in-app player and photo display, honoring Range
  * requests so the player can start instantly and jump to any moment (the
  * quote timestamps). Unlike /file, which hands over the whole file once for
  * Share, this never holds the file in memory.
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const user = await getCurrentUser();
 
   const asset = await prisma.asset.findUnique({ where: { id }, select: { sourceFile: true, type: true } });
-  if (!asset || !asset.sourceFile || (asset.type !== "AUDIO" && asset.type !== "VIDEO")) {
+  if (!asset || !asset.sourceFile || asset.type === "NOTE") {
     return NextResponse.json({ error: "Nothing to play" }, { status: 404 });
   }
 

@@ -79,22 +79,32 @@ async function handleNoteUpload(asset: Asset, text: string, user: CurrentUser) {
   });
 }
 
+/** What kind of asset a file is, from its MIME type — null when it isn't something we handle yet. */
+export function assetTypeForMime(mimeType: string): AssetType | null {
+  if (mimeType.startsWith("audio/")) return "AUDIO";
+  if (mimeType.startsWith("video/")) return "VIDEO";
+  if (mimeType.startsWith("image/") || mimeType === "application/pdf") return "DOCUMENT";
+  return null;
+}
+
 /**
- * Starts a direct-to-Drive upload for a large audio/video file — the file's
- * bytes will go straight from the browser to Drive, bypassing our server
- * (and its platform request-size limit) entirely. Returns the session URL
- * for the browser to PUT the file to, plus the asset row it can report
- * progress against.
+ * Starts a direct-to-Drive upload — the file's bytes go straight from the
+ * browser to Drive, bypassing our server (and its platform request-size
+ * limit) entirely. Works for any supported file, not just big recordings:
+ * a phone photo or an agenda PDF can exceed that limit too. The asset's type
+ * is worked out from the file itself. Returns the session URL for the browser
+ * to upload to, plus the asset row it can report progress against.
  */
-export async function initMediaUpload(
+export async function initUpload(
   projectId: string,
   input: { fileName: string; mimeType: string },
   user: CurrentUser,
 ) {
-  const type: AssetType = input.mimeType.startsWith("audio/") ? "AUDIO" : "VIDEO";
+  const type = assetTypeForMime(input.mimeType);
+  if (!type) throw new AssetUploadError("That file type isn't supported yet", 400);
 
   const asset = await prisma.asset.create({
-    data: { projectId, type, sourceFile: "", status: "UPLOADING" },
+    data: { projectId, type, mimeType: input.mimeType, sourceFile: "", status: "UPLOADING" },
   });
 
   try {
@@ -115,26 +125,37 @@ export async function initMediaUpload(
 }
 
 /**
- * Called once the browser has finished PUTting the file straight to Drive.
- * Before committing to transcribe it, checks the file's real size/duration
- * (from Drive's own metadata) against our processing-time estimate — a
- * silent Vercel timeout (see processing-limits.ts) is worse than an
- * immediate, honest "this one's too big" that still leaves the reporter
- * able to grab their original file via Share.
+ * Called once the browser has finished uploading the file straight to Drive.
+ *
+ * Photos and PDFs (DOCUMENT) are reference material: they're done, no
+ * processing. Recordings are first checked against our processing-time
+ * estimate using the file's real size/duration — a silent Vercel timeout
+ * (see processing-limits.ts) is worse than an immediate, honest "this one's
+ * too big" that still leaves the reporter able to grab their original file
+ * via Share.
  *
  * Drive only works out a video's duration some seconds AFTER the upload
  * finishes (and never does for audio), so at this instant it's usually
  * missing. The browser can read it straight off the file as soon as it's
  * picked, so it sends that along; Drive's own value wins when it has one.
  */
-export async function finalizeMediaUpload(
+export async function finalizeUpload(
   assetId: string,
   driveFileId: string,
   user: CurrentUser,
   clientDurationSeconds: number | null = null,
 ) {
+  const asset = await prisma.asset.findUniqueOrThrow({ where: { id: assetId }, select: { type: true } });
   const auth = getDriveClientForUser(user.id, user.driveConnection);
   const driveStats = await getFileStats(auth, driveFileId);
+
+  if (asset.type === "DOCUMENT") {
+    return prisma.asset.update({
+      where: { id: assetId },
+      data: { sourceFile: driveFileId, fileSizeBytes: driveStats.fileSizeBytes, status: "READY" },
+    });
+  }
+
   const stats = { ...driveStats, durationSeconds: driveStats.durationSeconds ?? clientDurationSeconds };
 
   if (exceedsProcessingLimit(stats)) {

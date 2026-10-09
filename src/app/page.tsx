@@ -2,8 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { CreateProjectForm } from "@/components/create-project-form";
 import { TagBadges } from "@/components/tag-badges";
-import { DeleteProjectButton } from "@/components/delete-project-button";
 import { ProjectRowHeader } from "@/components/project-row-header";
+import { CaptureActions } from "@/components/capture-actions";
 import type { DotState } from "@/components/status-dot";
 
 const WORKING_STATUSES = ["TRANSCRIBING", "GENERATING"];
@@ -88,37 +88,7 @@ export default async function Home({
         What are you covering?
       </h2>
 
-      <section className="mt-5 rounded-[28px] bg-violet p-5 text-white">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="font-display text-xl font-extrabold">Start capturing</h3>
-            <p className="mt-1 text-sm leading-5 text-violet-100">
-              Record video or audio. Transcript and best moments follow.
-            </p>
-          </div>
-          <Link
-            href="/capture"
-            aria-label="Record video or audio"
-            className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full bg-white"
-          >
-            <span className="block h-7 w-7 rounded-full bg-violet" />
-          </Link>
-        </div>
-        <div className="mt-4 flex gap-2.5">
-          <Link
-            href="/capture?type=note"
-            className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-5 text-[15px] font-medium hover:bg-white/30"
-          >
-            Note
-          </Link>
-          <Link
-            href="/capture?type=document"
-            className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-5 text-[15px] font-medium hover:bg-white/30"
-          >
-            Document
-          </Link>
-        </div>
-      </section>
+      <CaptureActions endpoint="/api/quick-capture" goToProject layout="hero" />
 
       {banner && (
         <Link
@@ -157,7 +127,6 @@ export default async function Home({
               name={project.name}
               assetCount={project._count.assets}
               state={projectDotState(project.assets.map((a) => a.status))}
-              deleteSlot={<DeleteProjectButton projectId={project.id} projectName={project.name} />}
             />
             {project.tags.length > 0 && (
               <div className="pb-3 pl-[22px]">
