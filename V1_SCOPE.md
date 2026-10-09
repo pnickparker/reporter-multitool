@@ -24,6 +24,14 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 
 **Lesson to carry forward:** "committed" is not "deployed." Before telling testers a limit or fix is live, confirm it actually reached production — a cheap check is whether the new fields (`fileSizeBytes`) are being populated on fresh uploads.
 
+### Look and feel: direction chosen (2026-10-08) — nothing applied to the app yet
+
+Nick explored three mobile directions on a design canvas (https://claude.ai/artifact/9VaDptHvy2wFGDMcJ56ktW, private) and picked **B · Purple + Green** — "the clear winner, both in color scheme and layout." Reference he liked: YouTube Create's dark, big-tappable-action style. Name "Mobile News Bureau" is a stand-in (inside joke from his 1990s reporting days; he keeps a list of alternatives).
+
+What B is: deep violet-black ground (`#15111f`), violet (`#7c3aed`) for the main actions, green (`#3ddc97`) for ready/high-score/capture, Bricolage Grotesque headlines with DM Sans text; a bold capture card at the top of Home (Record, plus Note and Document), a two-column project grid, a floating pill tab bar with a green "+" button, and on the project page a Moments / Transcript / Files switcher with the quote score drawn as a ring (green at 70+, matching the post-draft cutoff).
+
+The mockups include things the app doesn't have yet — a mobile tab bar (the real app has only Home and project pages), "Quotes" and "You" tabs, and clip time ranges — so applying B splits into a **skin** (colors, type, buttons, cards; low risk, touches existing components) and **structure** (capture card, project grid, tab bar, project-page tabs; more work, partly depends on features not built). Testers are using the live app, so the plan is to do this on a branch and review a Vercel preview before it reaches `main`.
+
 ### Phase II thinking: clips from flagged quotes (2026-10-08, ideas only — nothing built)
 
 Nick's question: instead of a full Riverside-style auto-editor, can the app use the clip scoring to *mark* the good moments so a reporter can trim quickly in the phone's native apps? His instinct is that fast, social-ready clips published alongside a story would be a big deal; he's taking the question to testers.
