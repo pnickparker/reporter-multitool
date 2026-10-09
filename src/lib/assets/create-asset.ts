@@ -121,10 +121,21 @@ export async function initMediaUpload(
  * silent Vercel timeout (see processing-limits.ts) is worse than an
  * immediate, honest "this one's too big" that still leaves the reporter
  * able to grab their original file via Share.
+ *
+ * Drive only works out a video's duration some seconds AFTER the upload
+ * finishes (and never does for audio), so at this instant it's usually
+ * missing. The browser can read it straight off the file as soon as it's
+ * picked, so it sends that along; Drive's own value wins when it has one.
  */
-export async function finalizeMediaUpload(assetId: string, driveFileId: string, user: CurrentUser) {
+export async function finalizeMediaUpload(
+  assetId: string,
+  driveFileId: string,
+  user: CurrentUser,
+  clientDurationSeconds: number | null = null,
+) {
   const auth = getDriveClientForUser(user.id, user.driveConnection);
-  const stats = await getFileStats(auth, driveFileId);
+  const driveStats = await getFileStats(auth, driveFileId);
+  const stats = { ...driveStats, durationSeconds: driveStats.durationSeconds ?? clientDurationSeconds };
 
   if (exceedsProcessingLimit(stats)) {
     const estimatedSeconds = Math.round(estimateProcessingSeconds(stats));
