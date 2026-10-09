@@ -44,6 +44,15 @@ Not solved by any of the above: social-ready also usually means vertical framing
 
 Data point that shapes this: tester uploads so far are roughly three-quarters audio (sports audio), so clips-from-video would apply to a minority of current uploads; audio would need an audiogram-style treatment (waveform + captions) instead.
 
+**First answers (2026-10-08, Cody Thorn, via Nick's text thread):**
+- Always shoots video, never audio-only.
+- His real workflow: shoot video and a photo, open Photos and trim the dead space, then go to Adobe, add the video plus an overlay (a watermark), export, and upload to X/Twitter.
+- Asked whether he wants video tools inside the app or just a button to open Adobe: "Open it would be nice" — a hand-off, not in-app editing.
+- Does not add burned-in captions; "I just throw watermark and move on." **"Caption is the twitter part"** — to him a caption is the text of the post, which is exactly what the app already drafts. When asking other testers, separate "captions burned into the video" from "the text of the post"; they mean different things and the word is ambiguous.
+- Did not answer whether auto-trim to a marked quote would help; Nick will ask again.
+
+What this suggests (one reporter's view, not a decision): the clip-making step stays in his own tools, so the highest-value bridge looks like option 1 (start–end times on each quote, so he knows where to trim in Photos) plus the post copy the app already drafts, not in-app video editing or server-side cutting. The existing Share button may already cover "open it in Adobe" — the iOS share sheet normally lists video apps like Adobe's — but that is unverified.
+
 **Questions for testers:** (1) Do you shoot video at events, or mostly record audio? (2) For one story, how many clips would you post, on which platforms, how long? (3) Where do you cut video today (Photos, CapCut, InShot) and how long does a clip take? (4) Would start–end times save you real time, or only a finished clip ready to share? (5) Do captions and vertical framing matter to you? (6) Would you use an audio clip with waveform and captions if there's no video?
 
 ## Status as of 2026-10-01 — fixed: large videos silently stuck forever
