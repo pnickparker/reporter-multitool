@@ -1,4 +1,5 @@
 import { SOCIAL_POST_SCORE_THRESHOLD } from "@/lib/ai/scoring";
+import { TextActions } from "@/components/text-actions";
 
 interface Quote {
   id: string;
@@ -16,39 +17,74 @@ function formatTimestamp(seconds: number): string {
   return `${m}:${s}`;
 }
 
+const RING_RADIUS = 20;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+/** The engagement score as a ring — mint at or above the post-draft threshold, violet below it. */
+function ScoreRing({ score, strong }: { score: number; strong: boolean }) {
+  const filled = (Math.max(0, Math.min(100, score)) / 100) * RING_CIRCUMFERENCE;
+  return (
+    <div
+      className="relative h-[52px] w-[52px] shrink-0"
+      title={
+        strong
+          ? "Social posts generated for this quote"
+          : `Below the ${SOCIAL_POST_SCORE_THRESHOLD} threshold — no posts generated`
+      }
+    >
+      <svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true">
+        <circle cx="26" cy="26" r={RING_RADIUS} fill="none" strokeWidth="5" className="stroke-line" />
+        <circle
+          cx="26"
+          cy="26"
+          r={RING_RADIUS}
+          fill="none"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={`${filled} ${RING_CIRCUMFERENCE}`}
+          transform="rotate(-90 26 26)"
+          className={strong ? "stroke-mint" : "stroke-violet-soft"}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[15px] font-bold">
+        {score}
+        <span className="sr-only"> out of 100</span>
+      </span>
+    </div>
+  );
+}
+
 export function QuotesView({ quotes }: { quotes: Quote[] }) {
   if (quotes.length === 0) return null;
 
+  const ranked = [...quotes].sort((a, b) => b.engagementScore - a.engagementScore);
+
   return (
-    <div className="mt-4">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-        Flagged quotes
-      </h3>
-      <ul className="mt-2 flex flex-col gap-2">
-        {quotes.map((q) => (
-          <li key={q.id} className="rounded bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-900">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-zinc-800 dark:text-zinc-200">&ldquo;{q.text}&rdquo;</p>
-              <span
-                title={
-                  q.engagementScore >= SOCIAL_POST_SCORE_THRESHOLD
-                    ? "Social posts generated for this quote"
-                    : `Below the ${SOCIAL_POST_SCORE_THRESHOLD} threshold — no posts generated`
-                }
-                className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-                  q.engagementScore >= SOCIAL_POST_SCORE_THRESHOLD
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                    : "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                }`}
-              >
-                {q.engagementScore}/100
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-zinc-500">
-              {formatTimestamp(q.timestamp)} &middot; {q.reason}
-            </p>
-          </li>
-        ))}
+    <div className="mt-5">
+      <h3 className="font-display text-xl font-extrabold">Best moments</h3>
+      <p className="mt-1 text-[13px] leading-[19px] text-muted">
+        Ranked by predicted engagement. Green is {SOCIAL_POST_SCORE_THRESHOLD} or higher and comes with post drafts.
+      </p>
+      <ul className="mt-3 flex flex-col gap-3">
+        {ranked.map((q) => {
+          const strong = q.engagementScore >= SOCIAL_POST_SCORE_THRESHOLD;
+          return (
+            <li key={q.id} className="rounded-3xl bg-surface-2 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[17px] font-medium leading-relaxed">&ldquo;{q.text}&rdquo;</p>
+                <ScoreRing score={q.engagementScore} strong={strong} />
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="rounded-full bg-line px-2.5 py-1 text-xs text-violet-100">
+                  at {formatTimestamp(q.timestamp)}
+                </span>
+                {strong && <span className="text-xs font-bold text-mint">Post drafts generated</span>}
+              </div>
+              <p className="mt-2 text-[13px] leading-[19px] text-muted">{q.reason}</p>
+              <TextActions text={q.text} label="quote" />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

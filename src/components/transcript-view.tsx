@@ -1,20 +1,46 @@
 import { asUtterances } from "@/lib/transcript-format";
 
-/** Shows speaker-labeled turns when diarization data is available, falling back to the flat transcript text. */
-export function TranscriptView({ text, segments }: { text: string; segments: unknown }) {
+/**
+ * Shows speaker-labeled turns when diarization data is available, falling
+ * back to the flat transcript text. `collapsible` tucks it behind a toggle —
+ * for recordings, where the best moments below are the point; a note's text
+ * IS its content, so those stay open.
+ */
+export function TranscriptView({
+  text,
+  segments,
+  collapsible = false,
+}: {
+  text: string;
+  segments: unknown;
+  collapsible?: boolean;
+}) {
   const utterances = asUtterances(segments);
 
-  if (utterances.length === 0) {
-    return <p className="mt-2 whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">{text}</p>;
+  const body =
+    utterances.length === 0 ? (
+      <p className="whitespace-pre-wrap">{text}</p>
+    ) : (
+      <div className="flex flex-col gap-2">
+        {utterances.map((u, i) => (
+          <p key={i}>
+            <span className="font-semibold text-violet-soft">Speaker {u.speaker ?? "?"}:</span> {u.text}
+          </p>
+        ))}
+      </div>
+    );
+
+  if (!collapsible) {
+    return <div className="mt-3 leading-relaxed text-ink/90">{body}</div>;
   }
 
   return (
-    <div className="mt-2 flex flex-col gap-1 text-zinc-700 dark:text-zinc-300">
-      {utterances.map((u, i) => (
-        <p key={i}>
-          <span className="font-medium">Speaker {u.speaker ?? "?"}:</span> {u.text}
-        </p>
-      ))}
-    </div>
+    <details className="group mt-2">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-violet-soft [&::-webkit-details-marker]:hidden">
+        <span className="group-open:hidden">Show full transcript</span>
+        <span className="hidden group-open:inline">Hide transcript</span>
+      </summary>
+      <div className="mt-1 leading-relaxed text-ink/90">{body}</div>
+    </details>
   );
 }

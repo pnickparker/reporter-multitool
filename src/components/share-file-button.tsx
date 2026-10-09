@@ -74,11 +74,11 @@ export function ShareFileButton({ assetId }: { assetId: string }) {
         type="button"
         onClick={handleClick}
         disabled={busy}
-        className="text-xs font-medium text-zinc-600 hover:underline disabled:opacity-50 dark:text-zinc-400"
+        className="link-action text-violet-soft"
       >
         {busy ? "Preparing…" : preparedFile ? "Tap to share" : "Share"}
       </button>
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </span>
   );
 }

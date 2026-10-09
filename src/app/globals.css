@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Purple + Green look (direction B from the design canvas). Dark only. */
+@theme {
+  --color-ground: #15111f;
+  --color-surface: #211a33;
+  --color-surface-2: #2b2243;
+  --color-line: #3a3057;
+  --color-ink: #f4f1fb;
+  --color-muted: #a99fc4;
+  --color-violet: #7c3aed;
+  --color-violet-soft: #b9a2ff;
+  --color-mint: #3ddc97;
+  --color-mint-deep: #12332a;
+  --color-danger: #ff8f8f;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-dm-sans), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ground);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-violet-soft);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .field {
+    @apply w-full rounded-2xl bg-surface-2 px-4 py-3 text-base text-ink ring-1 ring-line outline-none placeholder:text-muted focus:ring-2 focus:ring-violet-soft;
+  }
+  .btn-primary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-full bg-violet px-5 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex min-h-11 items-center justify-center rounded-full bg-surface-2 px-5 text-sm font-semibold text-ink hover:brightness-125 disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex min-h-11 items-center justify-center px-4 text-sm font-medium text-muted hover:text-ink;
+  }
+  .link-action {
+    @apply inline-flex min-h-11 items-center px-2 text-sm font-semibold hover:underline disabled:opacity-50;
+  }
 }

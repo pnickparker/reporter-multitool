@@ -4,6 +4,33 @@ import { CreateProjectForm } from "@/components/create-project-form";
 import { TagBadges } from "@/components/tag-badges";
 import { DeleteProjectButton } from "@/components/delete-project-button";
 import { ProjectRowHeader } from "@/components/project-row-header";
+import type { DotState } from "@/components/status-dot";
+
+const WORKING_STATUSES = ["TRANSCRIBING", "GENERATING"];
+
+function projectDotState(statuses: string[]): DotState {
+  if (statuses.some((s) => WORKING_STATUSES.includes(s))) return "working";
+  if (statuses.includes("ERROR")) return "error";
+  if (statuses.includes("READY")) return "ready";
+  return "idle";
+}
+
+/** The project with clips being processed right now, if any — recent only, so a long-stuck row doesn't show as "working" forever. */
+async function getProcessingBanner(ownerId: string) {
+  const since = new Date(Date.now() - 60 * 60 * 1000);
+  const working = await prisma.asset.findMany({
+    where: {
+      status: { in: WORKING_STATUSES as ("TRANSCRIBING" | "GENERATING")[] },
+      uploadedAt: { gte: since },
+      project: { ownerId },
+    },
+    select: { project: { select: { id: true, name: true } } },
+  });
+  if (working.length === 0) return null;
+  const first = working[0].project;
+  const count = working.filter((a) => a.project.id === first.id).length;
+  return { id: first.id, name: first.name, count };
+}
 
 export default async function Home({
   searchParams,
@@ -18,67 +45,132 @@ export default async function Home({
 
   if (!user) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-6 py-16">
-        <h1 className="text-2xl font-semibold">Reporter Multi-Tool</h1>
-        <p className="mt-4 text-zinc-600 dark:text-zinc-400">
-          Connect Google Drive to get started.
-        </p>
-        <a
-          href="/api/auth/google/connect"
-          className="mt-4 inline-block rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
-        >
+      <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-10">
+        <h1 className="font-display text-2xl font-extrabold tracking-tight">
+          Mobile News Bureau<span className="text-mint">.</span>
+        </h1>
+        <p className="mt-4 text-muted">Connect Google Drive to get started.</p>
+        <a href="/api/auth/google/connect" className="btn-primary mt-4">
           Connect Google Drive
         </a>
       </main>
     );
   }
 
-  const projects = await prisma.project.findMany({
-    where: { ownerId: user.id, ...(tag ? { tags: { has: tag } } : {}) },
-    include: { _count: { select: { assets: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [projects, banner] = await Promise.all([
+    prisma.project.findMany({
+      where: { ownerId: user.id, ...(tag ? { tags: { has: tag } } : {}) },
+      include: {
+        _count: { select: { assets: true } },
+        assets: { select: { status: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    getProcessingBanner(user.id),
+  ]);
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-16">
-      <h1 className="text-2xl font-semibold">Reporter Multi-Tool</h1>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Signed in as {user.email}</p>
+    <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-8">
+      <header className="flex items-center justify-between">
+        <h1 className="font-display text-xl font-extrabold tracking-tight">
+          Mobile News Bureau<span className="text-mint">.</span>
+        </h1>
+        <span
+          title={`Signed in as ${user.email}`}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-2 text-base font-bold text-violet-soft"
+        >
+          <span aria-hidden="true">{user.email.charAt(0).toUpperCase()}</span>
+          <span className="sr-only">Signed in as {user.email}</span>
+        </span>
+      </header>
 
-      <div className="mt-8">
+      <h2 className="mt-6 font-display text-3xl font-extrabold leading-tight tracking-tight">
+        What are you covering?
+      </h2>
+
+      <section className="mt-5 rounded-[28px] bg-violet p-5 text-white">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="font-display text-xl font-extrabold">Start capturing</h3>
+            <p className="mt-1 text-sm leading-5 text-violet-100">
+              Record video or audio. Transcript and best moments follow.
+            </p>
+          </div>
+          <Link
+            href="/capture"
+            aria-label="Record video or audio"
+            className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full bg-white"
+          >
+            <span className="block h-7 w-7 rounded-full bg-violet" />
+          </Link>
+        </div>
+        <div className="mt-4 flex gap-2.5">
+          <Link
+            href="/capture?type=note"
+            className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-5 text-[15px] font-medium hover:bg-white/30"
+          >
+            Note
+          </Link>
+          <Link
+            href="/capture?type=document"
+            className="inline-flex min-h-11 items-center rounded-full bg-white/20 px-5 text-[15px] font-medium hover:bg-white/30"
+          >
+            Document
+          </Link>
+        </div>
+      </section>
+
+      {banner && (
+        <Link
+          href={`/projects/${banner.id}`}
+          className="mt-4 flex items-center gap-3 rounded-2xl bg-mint-deep px-4 py-3.5 text-sm leading-5 text-emerald-50"
+        >
+          <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-mint" />
+          <span>
+            <span className="font-bold">{banner.name}</span> · {banner.count} working
+          </span>
+        </Link>
+      )}
+
+      <div className="mt-6">
         <CreateProjectForm />
       </div>
 
+      <div className="mt-7 flex items-center justify-between">
+        <h2 className="font-display text-xl font-extrabold">Projects</h2>
+      </div>
+
       {tag && (
-        <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
-          Showing beat: <span className="font-medium">{tag}</span> —{" "}
-          <Link href="/" className="hover:underline">
+        <p className="mt-2 text-sm text-muted">
+          Showing beat: <span className="font-semibold text-ink">{tag}</span> —{" "}
+          <Link href="/" className="text-violet-soft hover:underline">
             clear filter
           </Link>
         </p>
       )}
 
-      <ul className="mt-4 flex flex-col gap-2">
+      <ul className="mt-3 flex flex-col gap-3">
         {projects.map((project) => (
-          <li
-            key={project.id}
-            className="rounded border border-zinc-200 px-4 py-3 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-          >
+          <li key={project.id} className="rounded-3xl bg-surface px-4 pb-1 pt-1">
             <ProjectRowHeader
               projectId={project.id}
               name={project.name}
               assetCount={project._count.assets}
+              state={projectDotState(project.assets.map((a) => a.status))}
+              deleteSlot={<DeleteProjectButton projectId={project.id} projectName={project.name} />}
             />
-            <div className="mt-2 flex items-center justify-between">
-              {project.tags.length > 0 ? <TagBadges tags={project.tags} /> : <span />}
-              <DeleteProjectButton projectId={project.id} projectName={project.name} />
-            </div>
+            {project.tags.length > 0 && (
+              <div className="pb-3 pl-[22px]">
+                <TagBadges tags={project.tags} />
+              </div>
+            )}
           </li>
         ))}
         {projects.length === 0 && tag && (
-          <p className="text-sm text-zinc-500">No projects tagged &ldquo;{tag}&rdquo;.</p>
+          <p className="text-sm text-muted">No projects tagged &ldquo;{tag}&rdquo;.</p>
         )}
         {projects.length === 0 && !tag && (
-          <p className="text-sm text-zinc-500">No projects yet — create one above.</p>
+          <p className="text-sm text-muted">No projects yet — start a capture above, or create one.</p>
         )}
       </ul>
     </main>

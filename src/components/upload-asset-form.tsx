@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 /** UI-level grouping — Audio and Video share one picker since a video recording captures audio too, and the OS camera app is the only reliable native recorder file inputs can reach. The actual AssetType (AUDIO vs VIDEO) is inferred server-side from the picked file's MIME type. */
-type UiType = "MEDIA" | "DOCUMENT" | "NOTE";
+export type UiType = "MEDIA" | "DOCUMENT" | "NOTE";
 
 const UI_TYPE_LABELS: Record<UiType, string> = {
   MEDIA: "Audio/Video",
@@ -22,12 +22,14 @@ interface UploadAssetFormProps {
   endpoint: string;
   /** Called with the created asset on success, instead of the default router.refresh(). */
   onSuccess?: (asset: { projectId: string }) => void;
+  /** Which type is selected first — the Home page's Note/Document shortcuts pass this. */
+  initialType?: UiType;
 }
 
-export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
+export function UploadAssetForm({ endpoint, onSuccess, initialType = "MEDIA" }: UploadAssetFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uiType, setUiType] = useState<UiType>("MEDIA");
+  const [uiType, setUiType] = useState<UiType>(initialType);
   const [noteText, setNoteText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -169,14 +171,20 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-3 rounded border border-zinc-300 p-4 dark:border-zinc-700"
-    >
-      <div className="flex flex-wrap gap-4 text-sm">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-3xl bg-surface p-4">
+      <div role="radiogroup" aria-label="What are you adding?" className="flex rounded-full bg-ground p-1">
         {(Object.keys(UI_TYPE_LABELS) as UiType[]).map((t) => (
-          <label key={t} className="flex items-center gap-1">
-            <input type="radio" checked={uiType === t} onChange={() => setUiType(t)} />
+          <label
+            key={t}
+            className="flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-full text-sm font-medium text-muted has-[:checked]:bg-violet has-[:checked]:font-bold has-[:checked]:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-violet-soft"
+          >
+            <input
+              type="radio"
+              name="asset-type"
+              checked={uiType === t}
+              onChange={() => setUiType(t)}
+              className="sr-only"
+            />
             {UI_TYPE_LABELS[t]}
           </label>
         ))}
@@ -186,14 +194,15 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
           placeholder="Type or paste a note…"
+          aria-label="Note"
           rows={4}
-          className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="field"
         />
       ) : (
         <div className="flex flex-col gap-2">
           <label
             htmlFor="asset-file-input"
-            className="cursor-pointer rounded border border-dashed border-zinc-400 px-4 py-6 text-center text-base font-medium text-zinc-700 hover:border-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:border-zinc-400 dark:hover:bg-zinc-800"
+            className="cursor-pointer rounded-2xl border-2 border-dashed border-line px-4 py-7 text-center text-base font-medium text-violet-soft hover:border-violet-soft"
           >
             {fileName ?? "Create or Select New File"}
           </label>
@@ -207,14 +216,10 @@ export function UploadAssetForm({ endpoint, onSuccess }: UploadAssetFormProps) {
           />
         </div>
       )}
-      <button
-        type="submit"
-        disabled={uploading}
-        className="mt-4 self-start rounded bg-zinc-900 px-6 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
+      <button type="submit" disabled={uploading} className="btn-primary self-start px-7">
         {uploading ? (progressLabel ?? "Saving…") : uiType === "NOTE" ? "Save note" : "Upload"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </form>
   );
 }

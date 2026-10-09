@@ -63,74 +63,64 @@ export function ProjectDetailsForm({
 
   if (!expanded) {
     return (
-      <button
-        onClick={() => setExpanded(true)}
-        className="text-sm text-zinc-500 hover:underline"
-      >
+      <button onClick={() => setExpanded(true)} className="link-action -ml-2 text-left text-violet-soft">
         {hasDetails ? "Edit details" : "Add details (beat, venue, date, notes) — optional"}
       </button>
     );
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-3 rounded border border-zinc-300 p-4 text-sm dark:border-zinc-700"
-    >
-      <label className="flex flex-col gap-1">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-3xl bg-surface p-4 text-sm">
+      <label className="flex flex-col gap-1.5 font-medium text-muted">
         Beat / tags
         <input
           type="text"
           value={tagsValue}
           onChange={(e) => setTagsValue(e.target.value)}
           placeholder="e.g. Central High Football, City Council"
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="field"
         />
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs font-normal text-muted">
           Comma-separated — lets you find every project on the same beat later.
         </span>
       </label>
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5 font-medium text-muted">
         Date
         <input
           type="date"
           value={dateValue}
           onChange={(e) => setDateValue(e.target.value)}
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="field"
         />
       </label>
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5 font-medium text-muted">
         Venue
         <input
           type="text"
           value={venueValue}
           onChange={(e) => setVenueValue(e.target.value)}
           placeholder="e.g. City Hall, Council Chambers"
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="field"
         />
       </label>
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-1.5 font-medium text-muted">
         Notes
         <textarea
           value={notesValue}
           onChange={(e) => setNotesValue(e.target.value)}
           rows={3}
-          className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+          className="field"
         />
       </label>
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={saving}
-          className="self-start rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-        >
+      <div className="flex items-center gap-2">
+        <button type="submit" disabled={saving} className="btn-primary">
           {saving ? "Saving…" : "Save details"}
         </button>
-        <button type="button" onClick={() => setExpanded(false)} className="text-zinc-500 hover:underline">
+        <button type="button" onClick={() => setExpanded(false)} className="btn-ghost">
           Cancel
         </button>
       </div>
-      {error && <p className="text-red-600">{error}</p>}
+      {error && <p className="text-danger">{error}</p>}
     </form>
   );
 }

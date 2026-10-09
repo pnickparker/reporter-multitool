@@ -1,18 +1,23 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { StatusDot, type DotState } from "@/components/status-dot";
 
-/** The name/asset-count line of a home page project row — click "Rename" to edit the name in place, or click the name itself to open the project. */
+/** A home page project row's name and actions — click the name to open the project, "Rename" to edit it in place. `deleteSlot` is the Delete button, passed in so it sits with the other actions. */
 export function ProjectRowHeader({
   projectId,
   name,
   assetCount,
+  state,
+  deleteSlot,
 }: {
   projectId: string;
   name: string;
   assetCount: number;
+  state: DotState;
+  deleteSlot: ReactNode;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -49,18 +54,15 @@ export function ProjectRowHeader({
 
   if (editing) {
     return (
-      <form onSubmit={handleSave} className="flex items-center gap-2">
+      <form onSubmit={handleSave} className="flex flex-wrap items-center gap-2 py-2">
         <input
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="flex-1 rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          aria-label="Project name"
+          className="field min-w-0 flex-1"
         />
-        <button
-          type="submit"
-          disabled={saving}
-          className="text-xs font-medium text-zinc-900 hover:underline disabled:opacity-50 dark:text-zinc-100"
-        >
+        <button type="submit" disabled={saving} className="btn-primary">
           {saving ? "Saving…" : "Save"}
         </button>
         <button
@@ -70,28 +72,43 @@ export function ProjectRowHeader({
             setValue(name);
             setError(null);
           }}
-          className="text-xs text-zinc-500 hover:underline"
+          className="btn-ghost"
         >
           Cancel
         </button>
-        {error && <span className="text-xs text-red-600">{error}</span>}
+        {error && <span className="w-full text-xs text-danger">{error}</span>}
       </form>
     );
   }
 
   return (
-    <div className="flex items-center justify-between gap-2">
-      <Link href={`/projects/${projectId}`} className="flex-1 truncate hover:underline">
-        {name}
-      </Link>
-      <span className="shrink-0 text-sm text-zinc-500">{assetCount} asset(s)</span>
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="shrink-0 text-xs font-medium text-zinc-500 hover:underline"
-      >
-        Rename
-      </button>
+    <div>
+      <div className="flex items-start gap-3 pt-1">
+        <span className="mt-3">
+          <StatusDot state={state} />
+        </span>
+        <Link
+          href={`/projects/${projectId}`}
+          className="line-clamp-2 min-w-0 flex-1 py-2.5 text-base font-semibold leading-snug hover:underline"
+        >
+          {name}
+        </Link>
+      </div>
+      <div className="flex items-center justify-between pl-[22px]">
+        <span className="text-xs text-muted">
+          {assetCount} {assetCount === 1 ? "asset" : "assets"}
+        </span>
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="link-action text-violet-soft"
+          >
+            Rename
+          </button>
+          {deleteSlot}
+        </div>
+      </div>
     </div>
   );
 }

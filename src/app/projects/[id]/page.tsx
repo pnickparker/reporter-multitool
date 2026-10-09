@@ -11,6 +11,30 @@ import { TagBadges } from "@/components/tag-badges";
 import { ShareFileButton } from "@/components/share-file-button";
 import { DeleteProjectButton } from "@/components/delete-project-button";
 import { EditableProjectTitle } from "@/components/editable-project-title";
+import { StatusDot, type DotState } from "@/components/status-dot";
+
+const STATUS_DOT: Record<string, DotState> = {
+  READY: "ready",
+  UPLOADING: "working",
+  TRANSCRIBING: "working",
+  GENERATING: "working",
+  ERROR: "error",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  READY: "Ready",
+  UPLOADING: "Uploading",
+  TRANSCRIBING: "Transcribing",
+  GENERATING: "Finding best moments",
+  ERROR: "Needs attention",
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  AUDIO: "Audio",
+  VIDEO: "Video",
+  DOCUMENT: "Document",
+  NOTE: "Note",
+};
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,19 +51,19 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   if (!project) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-16">
+    <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-6">
       <AssetStatusPoller statuses={project.assets.map((a) => a.status)} />
-      <Link href="/" className="text-sm text-zinc-500 hover:underline">
+      <Link href="/" className="link-action -ml-2 text-muted">
         &larr; All projects
       </Link>
-      <div className="mt-2 flex items-center justify-between">
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <EditableProjectTitle projectId={project.id} name={project.name} />
-        <div className="flex items-center gap-3">
+        <div className="-ml-2 flex items-center">
           {project.assets.length > 0 && (
             <a
               href={`/api/projects/${project.id}/export`}
               download
-              className="text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400"
+              className="link-action text-violet-soft"
             >
               Export whole project
             </a>
@@ -49,7 +73,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       </div>
 
       {(project.venue || project.eventDate || project.notes || project.tags.length > 0) && (
-        <div className="mt-2 flex flex-col gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+        <div className="mt-2 flex flex-col gap-2 text-sm text-muted">
           <TagBadges tags={project.tags} />
           {(project.venue || project.eventDate) && (
             <div>
@@ -72,35 +96,30 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         />
       </div>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <UploadAssetForm endpoint={`/api/projects/${project.id}/assets`} />
       </div>
 
-      <ul className="mt-8 flex flex-col gap-2">
+      <ul className="mt-6 flex flex-col gap-4">
         {project.assets.map((asset) => (
-          <li
-            key={asset.id}
-            className="rounded border border-zinc-200 px-4 py-3 text-sm dark:border-zinc-800"
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{asset.type}</span>
-              <div className="flex items-center gap-3">
+          <li key={asset.id} className="rounded-3xl bg-surface p-4 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <StatusDot state={STATUS_DOT[asset.status] ?? "idle"} />
+                <span className="font-bold">
+                  {TYPE_LABEL[asset.type] ?? asset.type} · {STATUS_LABEL[asset.status] ?? asset.status}
+                </span>
+              </div>
+              <div className="flex items-center">
                 {asset.status === "READY" && (
-                  <a
-                    href={`/api/assets/${asset.id}/export`}
-                    download
-                    className="text-xs font-medium text-zinc-600 hover:underline dark:text-zinc-400"
-                  >
+                  <a href={`/api/assets/${asset.id}/export`} download className="link-action text-violet-soft">
                     Export
                   </a>
                 )}
                 {asset.sourceFile && <ShareFileButton assetId={asset.id} />}
-                <span className={asset.status === "ERROR" ? "text-red-600" : "text-zinc-500"}>
-                  {asset.status}
-                </span>
               </div>
             </div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="text-xs text-muted">
               {asset.sourceFile ? (
                 <>
                   Drive file:{" "}
@@ -108,7 +127,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     href={`https://drive.google.com/file/d/${asset.sourceFile}/view`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline"
+                    className="text-violet-soft hover:underline"
                   >
                     open
                   </a>
@@ -118,17 +137,23 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               )}
             </p>
             {asset.status === "ERROR" && asset.errorMessage && (
-              <p className="mt-1 text-xs text-red-600">{asset.errorMessage}</p>
+              <p className="mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 text-danger">
+                {asset.errorMessage}
+              </p>
             )}
             {asset.transcript && (
-              <TranscriptView text={asset.transcript.text} segments={asset.transcript.segments} />
+              <TranscriptView
+                text={asset.transcript.text}
+                segments={asset.transcript.segments}
+                collapsible={asset.type === "AUDIO" || asset.type === "VIDEO"}
+              />
             )}
             <QuotesView quotes={asset.flaggedQuotes} />
             <SocialPostsView posts={asset.socialPosts} />
           </li>
         ))}
         {project.assets.length === 0 && (
-          <p className="text-sm text-zinc-500">No assets yet — upload one above.</p>
+          <p className="text-sm text-muted">No assets yet — upload one above.</p>
         )}
       </ul>
     </main>

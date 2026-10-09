@@ -33,21 +33,18 @@ export function CreateProjectForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form onSubmit={handleSubmit} className="flex flex-wrap gap-2">
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="New project name"
-        className="flex-1 rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        placeholder="Name a new project"
+        aria-label="New project name"
+        className="field min-w-0 flex-1"
       />
-      <button
-        type="submit"
-        disabled={submitting}
-        className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
+      <button type="submit" disabled={submitting} className="btn-secondary shrink-0">
         {submitting ? "Creating…" : "Create project"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="w-full text-sm text-danger">{error}</p>}
     </form>
   );
 }
