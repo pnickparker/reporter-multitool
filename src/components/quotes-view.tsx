@@ -1,5 +1,6 @@
 import { SOCIAL_POST_SCORE_THRESHOLD } from "@/lib/ai/scoring";
 import { TextActions } from "@/components/text-actions";
+import { SeekChip } from "@/components/media-scope";
 
 interface Quote {
   id: string;
@@ -75,9 +76,7 @@ export function QuotesView({ quotes }: { quotes: Quote[] }) {
                 <ScoreRing score={q.engagementScore} strong={strong} />
               </div>
               <div className="mt-2 flex items-center gap-3">
-                <span className="rounded-full bg-line px-2.5 py-1 text-xs text-violet-100">
-                  at {formatTimestamp(q.timestamp)}
-                </span>
+                <SeekChip seconds={q.timestamp} label={formatTimestamp(q.timestamp)} />
                 {strong && <span className="text-xs font-bold text-mint">Post drafts generated</span>}
               </div>
               <p className="mt-2 text-[13px] leading-[19px] text-muted">{q.reason}</p>

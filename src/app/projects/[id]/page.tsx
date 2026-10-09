@@ -12,6 +12,7 @@ import { ShareFileButton } from "@/components/share-file-button";
 import { DeleteProjectButton } from "@/components/delete-project-button";
 import { EditableProjectTitle } from "@/components/editable-project-title";
 import { StatusDot, type DotState } from "@/components/status-dot";
+import { MediaPlayer, MediaScope } from "@/components/media-scope";
 
 const STATUS_DOT: Record<string, DotState> = {
   READY: "ready",
@@ -101,57 +102,65 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       </div>
 
       <ul className="mt-6 flex flex-col gap-4">
-        {project.assets.map((asset) => (
-          <li key={asset.id} className="rounded-3xl bg-surface p-4 text-sm">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <StatusDot state={STATUS_DOT[asset.status] ?? "idle"} />
-                <span className="font-bold">
-                  {TYPE_LABEL[asset.type] ?? asset.type} · {STATUS_LABEL[asset.status] ?? asset.status}
-                </span>
-              </div>
-              <div className="flex items-center">
-                {asset.status === "READY" && (
-                  <a href={`/api/assets/${asset.id}/export`} download className="link-action text-violet-soft">
-                    Export
-                  </a>
+        {project.assets.map((asset) => {
+          const playable = (asset.type === "AUDIO" || asset.type === "VIDEO") && !!asset.sourceFile;
+          return (
+            <li key={asset.id} className="rounded-3xl bg-surface p-4 text-sm">
+              <MediaScope hasMedia={playable}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <StatusDot state={STATUS_DOT[asset.status] ?? "idle"} />
+                    <span className="font-bold">
+                      {TYPE_LABEL[asset.type] ?? asset.type} · {STATUS_LABEL[asset.status] ?? asset.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    {asset.status === "READY" && (
+                      <a href={`/api/assets/${asset.id}/export`} download className="link-action text-violet-soft">
+                        Export
+                      </a>
+                    )}
+                    {asset.sourceFile && <ShareFileButton assetId={asset.id} />}
+                  </div>
+                </div>
+                <p className="text-xs text-muted">
+                  {asset.sourceFile ? (
+                    <>
+                      Drive file:{" "}
+                      <a
+                        href={`https://drive.google.com/file/d/${asset.sourceFile}/view`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-violet-soft hover:underline"
+                      >
+                        open
+                      </a>
+                    </>
+                  ) : (
+                    "Drive file: —"
+                  )}
+                </p>
+                {playable && (asset.type === "AUDIO" || asset.type === "VIDEO") && (
+                  <MediaPlayer assetId={asset.id} kind={asset.type} />
                 )}
-                {asset.sourceFile && <ShareFileButton assetId={asset.id} />}
-              </div>
-            </div>
-            <p className="text-xs text-muted">
-              {asset.sourceFile ? (
-                <>
-                  Drive file:{" "}
-                  <a
-                    href={`https://drive.google.com/file/d/${asset.sourceFile}/view`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-violet-soft hover:underline"
-                  >
-                    open
-                  </a>
-                </>
-              ) : (
-                "Drive file: —"
-              )}
-            </p>
-            {asset.status === "ERROR" && asset.errorMessage && (
-              <p className="mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 text-danger">
-                {asset.errorMessage}
-              </p>
-            )}
-            {asset.transcript && (
-              <TranscriptView
-                text={asset.transcript.text}
-                segments={asset.transcript.segments}
-                collapsible={asset.type === "AUDIO" || asset.type === "VIDEO"}
-              />
-            )}
-            <QuotesView quotes={asset.flaggedQuotes} />
-            <SocialPostsView posts={asset.socialPosts} />
-          </li>
-        ))}
+                {asset.status === "ERROR" && asset.errorMessage && (
+                  <p className="mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 text-danger">
+                    {asset.errorMessage}
+                  </p>
+                )}
+                {asset.transcript && (
+                  <TranscriptView
+                    text={asset.transcript.text}
+                    segments={asset.transcript.segments}
+                    collapsible={asset.type === "AUDIO" || asset.type === "VIDEO"}
+                  />
+                )}
+                <QuotesView quotes={asset.flaggedQuotes} />
+                <SocialPostsView posts={asset.socialPosts} />
+              </MediaScope>
+            </li>
+          );
+        })}
         {project.assets.length === 0 && (
           <p className="text-sm text-muted">No assets yet — upload one above.</p>
         )}
