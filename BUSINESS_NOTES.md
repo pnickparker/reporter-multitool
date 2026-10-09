@@ -84,3 +84,16 @@ Nick is new to running a software business and correctly flagged that the open n
 - **2026-10-08 — first value signal from the field-testing phase.** Michael, one of the two testers, said he really likes the viral scoring and suggested quotes and that having them pre-pulled makes his writing time more efficient. Worth noticing *which* feature earned the praise: quote surfacing and scoring, the newsroom-workflow layer, not raw transcription — consistent with the market-position note above that the edge isn't transcription. Usage so far is real (24 assets, ~10 projects, mostly sports audio). Value looks promising; reliability is not yet proven at the standard the "associations" checkpoint needs, since the timeout fixes were still unpushed as of this date (see V1_SCOPE.md).
 
 **How to use this table:** when a checkpoint question comes up for real (e.g., once there are a couple of paying warm-prospect clients and the association step starts feeling close), that's the trigger to go do the research in the third column — not to guess, and not to keep deferring indefinitely either.
+
+## Naming (added 2026-10-09)
+
+"Mobile News Bureau" is the working name (it comes from an inside joke with industry friends from Nick's 1990s reporting days). Nick keeps a handwritten brainstorm list: Deadline, On Deadline, Reporter Go, Beat Reporter, Butter Pen (a reference to a Randy Newman line from *The Paper*), Journo, NewsContent, News Go, Mobile News Bureau, Mobile News Unit, Now Reporting, News Kit, News Producer. Favorites: Mobile News Bureau, Beat Reporter, Butter Pen, and News Kit (appealing because the monogram "NK" reads as "Nick").
+
+Quick conflict check (a web search, not a trademark clearance — a lawyer or the USPTO database is the real check, and it belongs with the other legal setup above):
+- **News Kit / NewsKit has real conflicts in the same industry:** News UK's open-source "NewsKit" design system (an npm package, https://www.npmjs.com/package/newskit) and a "NewsKit" Joomla template for news sites (https://www.joomshaper.com/joomla-templates/newskit). Same space, so search confusion now and a due-diligence flag for any acquirer later.
+- **Mobile News Bureau:** no company or app by that name turned up. Descriptive names are weaker to protect, but fine at this stage.
+- **Beat Reporter:** no app by that name turned up, but it's a common job title — hard to own and hard to search for. Better as a tagline ("for the beat reporter") than a name.
+- **Butter Pen:** couldn't confirm the reference (searches for the line returned nothing); a name that needs explaining mostly lands with insiders.
+- **Deadline** collides with a very well-known news site, so it's a poor fit on its own.
+
+Considerations: Nick has other tools (election tracker, sports tool), so a name that can become a family ("... Bureau") may be worth more than a one-off. Say each name aloud in a sentence a reporter would use, and check domain, social handles, and app stores before committing. An acquirer would likely rename anyway, so the name doesn't need to be perfect — it needs to be clear of conflicts and usable. **Decision timing:** keep Mobile News Bureau as the working name through testing; settle and clear the name before the association-level step (public visibility) in the timeline above, and certainly before charging anyone.
