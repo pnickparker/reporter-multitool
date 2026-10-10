@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { saveNote, uploadFile } from "@/lib/client/upload";
+import { saveNote, uploadFile, type UploadSession } from "@/lib/client/upload";
 
 interface CaptureActionsProps {
   /** "/api/quick-capture" (starts a new project) or "/api/projects/<id>/assets" (adds to that project). */
@@ -48,14 +48,21 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
   const [error, setError] = useState<string | null>(null);
   const [noteOpen, setNoteOpen] = useState(initialNoteOpen);
   const [noteText, setNoteText] = useState("");
+  // A failed upload keeps its file and its place in Drive, so "Try again" resumes rather than asking for a re-shoot.
+  const [retry, setRetry] = useState<{ start: () => void } | null>(null);
+  const sessionRef = useRef<UploadSession | null>(null);
 
-  async function run(work: () => Promise<{ projectId: string }>) {
+  async function run(work: () => Promise<{ projectId: string }>, onRetry?: () => void) {
     setBusy(true);
     setError(null);
+    setRetry(null);
+    let succeeded = false;
     try {
       const { projectId } = await work();
+      succeeded = true;
       setNoteText("");
       setNoteOpen(false);
+      sessionRef.current = null;
       if (goToProject) {
         router.push(`/projects/${projectId}`);
       } else {
@@ -63,18 +70,34 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
+      if (onRetry) setRetry({ start: onRetry });
     } finally {
       setBusy(false);
       setProgress(null);
-      // Cleared only now: resetting an input early can invalidate the picked file on some phones.
-      if (cameraRef.current) cameraRef.current.value = "";
-      if (uploadRef.current) uploadRef.current.value = "";
+      // Cleared only after success: resetting an input early can invalidate the picked file on some phones,
+      // and after a failure the file must stay put so it can be retried.
+      if (succeeded) {
+        if (cameraRef.current) cameraRef.current.value = "";
+        if (uploadRef.current) uploadRef.current.value = "";
+      }
     }
+  }
+
+  function startUpload(file: File) {
+    void run(
+      () =>
+        uploadFile(file, endpoint, setProgress, sessionRef.current, (session) => {
+          sessionRef.current = session;
+        }),
+      () => startUpload(file),
+    );
   }
 
   function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) void run(() => uploadFile(file, endpoint, setProgress));
+    if (!file) return;
+    sessionRef.current = null;
+    startUpload(file);
   }
 
   function onSaveNote() {
@@ -173,11 +196,27 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
     ) : null;
 
   const errorLine = error && (
-    <p
-      className={`mt-3 text-sm ${hero ? "rounded-2xl bg-black/25 px-3 py-2 text-white" : "text-danger"}`}
-    >
-      {error}
-    </p>
+    <div className={`mt-3 text-sm ${hero ? "rounded-2xl bg-black/25 px-3 py-2 text-white" : "text-danger"}`}>
+      <p>{error}</p>
+      {retry && (
+        <>
+          <p className={`mt-1 text-xs ${hero ? "text-violet-100" : "text-muted"}`}>
+            Your recording is still on this screen, so nothing is lost. Stay on this page and tap Try again.
+          </p>
+          <button
+            type="button"
+            onClick={retry.start}
+            className={
+              hero
+                ? "mt-2 inline-flex min-h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-violet hover:brightness-95"
+                : "btn-primary mt-2"
+            }
+          >
+            Try again
+          </button>
+        </>
+      )}
+    </div>
   );
 
   if (hero) {

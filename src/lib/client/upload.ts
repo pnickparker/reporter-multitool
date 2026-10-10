@@ -64,7 +64,8 @@ function readMediaDuration(file: File, mimeType: string): Promise<number | null>
   });
 }
 
-const MAX_CHUNK_RETRIES = 4;
+// Patience for a phone that briefly loses signal or sleeps: 8 tries with a capped backoff is about a minute and a quarter.
+const MAX_CHUNK_RETRIES = 8;
 
 /** Server hiccups and dropped connections are worth retrying; a rejected request (bad session, no permission) is not. */
 function isRetryable(status: number): boolean {
@@ -107,36 +108,67 @@ async function errorFrom(res: Response, fallback: string): Promise<Error> {
   return new Error(data.error ?? fallback);
 }
 
+/** Where an in-flight upload lives, so a failed attempt can be resumed with the same file instead of starting over. */
+export interface UploadSession {
+  assetId: string;
+  uploadUrl: string;
+  projectId: string;
+  durationSeconds: number | null;
+}
+
 /**
  * Uploads a recording, photo, or PDF straight to Drive (in pieces relayed
  * through our server) and registers it. `endpoint` is either
  * "/api/quick-capture" (creates a project on the fly) or
  * "/api/projects/<id>/assets". The asset's type is worked out server-side
  * from the file's MIME type.
+ *
+ * Pass back the `session` from a failed attempt (reported via `onSession`) to
+ * resume it: Drive is asked how much it already has, and only the rest is
+ * sent. News can't be re-shot, so a failure must never mean "record it again".
  */
 export async function uploadFile(
   file: File,
   endpoint: string,
   onProgress: (label: string) => void,
+  session: UploadSession | null = null,
+  onSession: (session: UploadSession) => void = () => {},
 ): Promise<{ projectId: string }> {
   const mimeType = resolveMimeType(file);
   const isRecording = mimeType.startsWith("audio/") || mimeType.startsWith("video/");
 
-  onProgress("Starting upload…");
-  const durationSeconds = isRecording ? await readMediaDuration(file, mimeType) : null;
-
-  const initRes = await fetch(`${endpoint}/init`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fileName: file.name, mimeType }),
-  });
-  if (!initRes.ok) throw await errorFrom(initRes, "Couldn't start upload");
-  const { assetId, uploadUrl, projectId } = await initRes.json();
-
   let driveFile: { id: string } | null = null;
   let start = 0;
+
+  if (session) {
+    onProgress("Checking what was already uploaded…");
+    const check = await relayToDrive(session.uploadUrl, file.size, null);
+    if (check.status === 308) start = check.received ?? 0;
+    else if (check.status === 200 || check.status === 201) driveFile = JSON.parse(check.text);
+    else if (check.status === 404 || check.status === 410) session = null; // Drive no longer knows this upload (expired) — begin a fresh one with the same file
+    else throw new Error(`Couldn't reach Drive (error ${check.status || "network"}) — try again`);
+  }
+
+  if (!session) {
+    onProgress("Starting upload…");
+    const durationSeconds = isRecording ? await readMediaDuration(file, mimeType) : null;
+
+    const initRes = await fetch(`${endpoint}/init`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, mimeType }),
+    });
+    if (!initRes.ok) throw await errorFrom(initRes, "Couldn't start upload");
+    const { assetId, uploadUrl, projectId } = await initRes.json();
+    session = { assetId, uploadUrl, projectId, durationSeconds };
+    start = 0;
+    driveFile = null;
+  }
+  onSession(session);
+  const { assetId, uploadUrl, projectId, durationSeconds } = session;
+
   let failures = 0;
-  while (start < file.size) {
+  while (!driveFile && start < file.size) {
     const end = Math.min(start + CHUNK_SIZE, file.size) - 1;
     onProgress(`Uploading… ${Math.round((start / file.size) * 100)}%`);
 
@@ -158,7 +190,7 @@ export async function uploadFile(
     if (!isRetryable(res.status) || failures > MAX_CHUNK_RETRIES) {
       throw new Error(`Upload to Drive failed partway through (error ${res.status || "network"}) — try again`);
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000 * failures));
+    await new Promise((resolve) => setTimeout(resolve, Math.min(2 ** failures, 15) * 1000));
     const check = await relayToDrive(uploadUrl, file.size, null);
     if (check.status === 308) start = check.received ?? 0;
     else if (check.status === 200 || check.status === 201) {
