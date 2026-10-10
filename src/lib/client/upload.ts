@@ -31,7 +31,7 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 };
 
 /** The file's MIME type, falling back to its extension when the browser doesn't report one (some phones don't). */
-function resolveMimeType(file: File): string {
+export function resolveMimeType(file: File): string {
   if (file.type && file.type !== "application/octet-stream") return file.type;
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
   return MIME_BY_EXTENSION[extension] ?? file.type ?? "application/octet-stream";

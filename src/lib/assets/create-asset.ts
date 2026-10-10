@@ -145,7 +145,10 @@ export async function finalizeUpload(
   user: CurrentUser,
   clientDurationSeconds: number | null = null,
 ) {
-  const asset = await prisma.asset.findUniqueOrThrow({ where: { id: assetId }, select: { type: true } });
+  const asset = await prisma.asset.findUniqueOrThrow({ where: { id: assetId } });
+  // A resumed upload (or a finish whose reply was lost) can report in twice; the second time must not restart processing.
+  if (asset.status !== "UPLOADING") return asset;
+
   const auth = getDriveClientForUser(user.id, user.driveConnection);
   const driveStats = await getFileStats(auth, driveFileId);
 

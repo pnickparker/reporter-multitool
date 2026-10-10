@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { saveNote, uploadFile, type UploadSession } from "@/lib/client/upload";
+import { resolveMimeType, saveNote, uploadFile, type UploadSession } from "@/lib/client/upload";
+import { listPending, removePending, savePending, saveSession } from "@/lib/client/pending-store";
+import { keepScreenAwake } from "@/lib/client/keep-awake";
 
 interface CaptureActionsProps {
   /** "/api/quick-capture" (starts a new project) or "/api/projects/<id>/assets" (adds to that project). */
@@ -13,6 +15,20 @@ interface CaptureActionsProps {
   layout: "hero" | "card";
   initialNoteOpen?: boolean;
 }
+
+/** A recording that hasn't finished uploading — kept on screen, and (when the phone allows) in the phone's own storage too. */
+interface WaitingRecording {
+  id: string;
+  file: File;
+  endpoint: string;
+  session: UploadSession | null;
+  /** True when a copy is kept in the phone's storage, so it survives a closed tab or reload. */
+  backedUp: boolean;
+  error: string | null;
+}
+
+/** Longest to wait for the phone to store the backup copy before uploading anyway — a stuck write must not block the news. */
+const BACKUP_WAIT_MS = 30_000;
 
 function CameraIcon({ size = 20 }: { size?: number }) {
   return (
@@ -33,79 +49,176 @@ function CameraIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function formatSize(bytes: number): string {
+  return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/** Hands the file to the phone's share sheet (where "Save Video" puts it in Photos), or downloads it where sharing files isn't offered. Must run straight from a tap. */
+function saveCopyToPhone(source: File) {
+  const file = new File([source], source.name, { type: resolveMimeType(source) });
+  const download = () => {
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
+  if (typeof navigator.share === "function" && navigator.canShare?.({ files: [file] })) {
+    navigator.share({ files: [file] }).catch((err) => {
+      if (err instanceof Error && err.name === "AbortError") return; // closed the sheet — fine
+      download();
+    });
+  } else {
+    download();
+  }
+}
+
 /**
  * The ways to add something: Camera (opens the phone's camera directly —
  * photo or video — and uploads the moment you finish), Note (type or paste
  * text), and Upload (any recording, photo, or PDF already on the phone). What
  * kind of thing a file is gets worked out from the file itself.
+ *
+ * Nothing recorded is ever dropped on a failure: every file is copied into the
+ * phone's own storage first, stays listed here until it has fully uploaded, and
+ * can be resumed, saved to the phone, or (deliberately) discarded.
  */
 export function CaptureActions({ endpoint, goToProject = false, layout, initialNoteOpen = false }: CaptureActionsProps) {
   const router = useRouter();
   const cameraRef = useRef<HTMLInputElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [noteOpen, setNoteOpen] = useState(initialNoteOpen);
   const [noteText, setNoteText] = useState("");
-  // A failed upload keeps its file and its place in Drive, so "Try again" resumes rather than asking for a re-shoot.
-  const [retry, setRetry] = useState<{ start: () => void } | null>(null);
-  const sessionRef = useRef<UploadSession | null>(null);
+  const [waiting, setWaiting] = useState<WaitingRecording[]>([]);
+  // The latest Drive session per recording, kept outside state so a resume always sees the newest one.
+  const sessionsRef = useRef(new Map<string, UploadSession>());
 
-  async function run(work: () => Promise<{ projectId: string }>, onRetry?: () => void) {
-    setBusy(true);
-    setError(null);
-    setRetry(null);
-    let succeeded = false;
-    try {
-      const { projectId } = await work();
-      succeeded = true;
-      setNoteText("");
-      setNoteOpen(false);
-      sessionRef.current = null;
-      if (goToProject) {
-        router.push(`/projects/${projectId}`);
-      } else {
-        router.refresh();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-      if (onRetry) setRetry({ start: onRetry });
-    } finally {
-      setBusy(false);
-      setProgress(null);
-      // Cleared only after success: resetting an input early can invalidate the picked file on some phones,
-      // and after a failure the file must stay put so it can be retried.
-      if (succeeded) {
-        if (cameraRef.current) cameraRef.current.value = "";
-        if (uploadRef.current) uploadRef.current.value = "";
-      }
+  // Anything left over from an earlier visit (closed tab, reload, crash) shows up here, ready to resume.
+  useEffect(() => {
+    let cancelled = false;
+    void listPending().then((saved) => {
+      if (cancelled || saved.length === 0) return;
+      setWaiting((current) => {
+        const known = new Set(current.map((w) => w.id));
+        const restored = saved
+          .filter((r) => !known.has(r.id))
+          .map((r) => ({ id: r.id, file: r.file, endpoint: r.endpoint, session: r.session, backedUp: true, error: null }));
+        return [...current, ...restored];
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // While something is uploading, ask the browser to warn before the page is closed (desktop browsers; phones ignore it).
+  useEffect(() => {
+    if (!busy) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [busy]);
+
+  function afterSuccess(projectId: string, destination: string) {
+    if (goToProject || destination === "/api/quick-capture") {
+      router.push(`/projects/${projectId}`);
+    } else {
+      router.refresh();
     }
   }
 
-  function startUpload(file: File) {
-    void run(
-      () =>
-        uploadFile(file, endpoint, setProgress, sessionRef.current, (session) => {
-          sessionRef.current = session;
-        }),
-      () => startUpload(file),
-    );
+  /** Uploads one waiting recording; on failure it stays in the list with the reason. */
+  async function upload(item: WaitingRecording) {
+    setBusy(true);
+    setActiveId(item.id);
+    setError(null);
+    setWaiting((all) => all.map((w) => (w.id === item.id ? { ...w, error: null } : w)));
+    const letScreenSleep = keepScreenAwake();
+    try {
+      const { projectId } = await uploadFile(
+        item.file,
+        item.endpoint,
+        setProgress,
+        sessionsRef.current.get(item.id) ?? item.session,
+        (session) => {
+          sessionsRef.current.set(item.id, session);
+          if (item.backedUp) void saveSession(item.id, session);
+        },
+      );
+      // Only now, with the upload fully recorded, is it safe to let go of the phone-side copy.
+      if (item.backedUp) await removePending(item.id);
+      sessionsRef.current.delete(item.id);
+      setWaiting((all) => all.filter((w) => w.id !== item.id));
+      // Cleared only after success: resetting an input early can invalidate the picked file on some phones.
+      if (cameraRef.current) cameraRef.current.value = "";
+      if (uploadRef.current) uploadRef.current.value = "";
+      afterSuccess(projectId, item.endpoint);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upload failed";
+      setWaiting((all) => all.map((w) => (w.id === item.id ? { ...w, error: message } : w)));
+    } finally {
+      letScreenSleep();
+      setBusy(false);
+      setActiveId(null);
+      setProgress(null);
+    }
+  }
+
+  async function startFile(file: File) {
+    setBusy(true);
+    setError(null);
+    setProgress("Saving a copy on this phone…");
+    const saved = await Promise.race([
+      savePending(file, endpoint),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), BACKUP_WAIT_MS)),
+    ]);
+    const item: WaitingRecording = saved
+      ? { id: saved.id, file, endpoint, session: null, backedUp: true, error: null }
+      : { id: crypto.randomUUID(), file, endpoint, session: null, backedUp: false, error: null };
+    setWaiting((all) => [...all, item]);
+    await upload(item);
   }
 
   function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    sessionRef.current = null;
-    startUpload(file);
+    if (file) void startFile(file);
   }
 
-  function onSaveNote() {
+  async function onSaveNote() {
     if (noteText.trim().length === 0) {
       setError("Type or paste a note first");
       return;
     }
-    void run(() => saveNote(noteText, endpoint));
+    setBusy(true);
+    setError(null);
+    try {
+      const { projectId } = await saveNote(noteText, endpoint);
+      setNoteText("");
+      setNoteOpen(false);
+      afterSuccess(projectId, endpoint);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save the note");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function discard(item: WaitingRecording) {
+    const sure = window.confirm(
+      "Delete this recording from this phone?\n\nIt has NOT finished uploading, so it will be gone for good.",
+    );
+    if (!sure) return;
+    if (item.backedUp) await removePending(item.id);
+    sessionsRef.current.delete(item.id);
+    setWaiting((all) => all.filter((w) => w.id !== item.id));
   }
 
   const hero = layout === "hero";
@@ -134,6 +247,8 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
     </>
   );
 
+  const activeItem = waiting.find((w) => w.id === activeId);
+
   const progressPanel = busy && (
     <div
       role="status"
@@ -144,10 +259,56 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
         {progress ?? "Saving…"}
       </div>
       <p className={`mt-1 text-xs ${hero ? "text-violet-100" : "text-muted"}`}>
-        Keep this screen open until it finishes.
+        {activeItem?.backedUp
+          ? "A copy is kept on this phone until it's safely uploaded. Keep this screen open."
+          : "Keep this screen open until it finishes."}
       </p>
     </div>
   );
+
+  const primaryButton = hero
+    ? "inline-flex min-h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-violet hover:brightness-95"
+    : "btn-primary";
+  const secondaryButton = hero
+    ? "inline-flex min-h-11 items-center rounded-full bg-white/20 px-5 text-sm font-medium hover:bg-white/30"
+    : "btn-secondary";
+  const quietButton = hero
+    ? "inline-flex min-h-11 items-center px-3 text-xs font-medium text-violet-100 hover:text-white"
+    : "btn-ghost text-xs";
+
+  // Recordings that haven't finished uploading. Not shown for the one currently uploading (the progress panel covers it).
+  const waitingList = waiting
+    .filter((w) => w.id !== activeId)
+    .map((w) => (
+      <div
+        key={w.id}
+        className={`mt-4 rounded-2xl px-4 py-3 text-sm ${hero ? "bg-black/25 text-white" : "bg-surface-2"}`}
+      >
+        <p className="font-semibold">
+          {w.error ? "This recording hasn't finished uploading" : "A recording is waiting to upload"}
+        </p>
+        <p className={`mt-0.5 break-all text-xs ${hero ? "text-violet-100" : "text-muted"}`}>
+          {w.file.name} · {formatSize(w.file.size)}
+        </p>
+        {w.error && <p className={`mt-2 ${hero ? "text-white" : "text-danger"}`}>{w.error}</p>}
+        <p className={`mt-2 text-xs ${hero ? "text-violet-100" : "text-muted"}`}>
+          {w.backedUp
+            ? "It's safe: a copy is kept on this phone. Resume whenever you have a signal."
+            : "No backup copy could be kept on this phone, so stay on this page — or save a copy to your phone now."}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button type="button" disabled={busy} onClick={() => void upload(w)} className={primaryButton}>
+            {w.error ? "Try again" : "Resume upload"}
+          </button>
+          <button type="button" onClick={() => saveCopyToPhone(w.file)} className={secondaryButton}>
+            Save to phone
+          </button>
+          <button type="button" disabled={busy} onClick={() => void discard(w)} className={quietButton}>
+            Discard
+          </button>
+        </div>
+      </div>
+    ));
 
   const notePanel =
     noteOpen && !busy ? (
@@ -166,15 +327,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
           }
         />
         <div className="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onSaveNote}
-            className={
-              hero
-                ? "inline-flex min-h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-violet hover:brightness-95"
-                : "btn-primary"
-            }
-          >
+          <button type="button" onClick={() => void onSaveNote()} className={primaryButton}>
             Save note
           </button>
           <button
@@ -196,27 +349,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
     ) : null;
 
   const errorLine = error && (
-    <div className={`mt-3 text-sm ${hero ? "rounded-2xl bg-black/25 px-3 py-2 text-white" : "text-danger"}`}>
-      <p>{error}</p>
-      {retry && (
-        <>
-          <p className={`mt-1 text-xs ${hero ? "text-violet-100" : "text-muted"}`}>
-            Your recording is still on this screen, so nothing is lost. Stay on this page and tap Try again.
-          </p>
-          <button
-            type="button"
-            onClick={retry.start}
-            className={
-              hero
-                ? "mt-2 inline-flex min-h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-violet hover:brightness-95"
-                : "btn-primary mt-2"
-            }
-          >
-            Try again
-          </button>
-        </>
-      )}
-    </div>
+    <p className={`mt-3 text-sm ${hero ? "rounded-2xl bg-black/25 px-3 py-2 text-white" : "text-danger"}`}>{error}</p>
   );
 
   if (hero) {
@@ -241,6 +374,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
           </button>
         </div>
         {progressPanel}
+        {waitingList}
         {!busy && (
           <div className="mt-4 flex gap-2.5">
             <button
@@ -290,6 +424,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
         Upload takes a recording, photo, or PDF already on your phone.
       </p>
       {progressPanel}
+      {waitingList}
       {notePanel}
       {errorLine}
     </section>
