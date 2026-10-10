@@ -64,6 +64,44 @@ function readMediaDuration(file: File, mimeType: string): Promise<number | null>
   });
 }
 
+const MAX_CHUNK_RETRIES = 4;
+
+/** Server hiccups and dropped connections are worth retrying; a rejected request (bad session, no permission) is not. */
+function isRetryable(status: number): boolean {
+  return status === 0 || status === 408 || status === 429 || status >= 500;
+}
+
+/**
+ * Sends one chunk to Drive through our relay route, or — with no chunk — asks
+ * Drive how many bytes of the file it already has. Never throws: a dropped
+ * connection comes back as status 0. `received` is the next byte Drive expects.
+ */
+async function relayToDrive(
+  uploadUrl: string,
+  totalSize: number,
+  chunk: { start: number; end: number; body: Blob } | null,
+): Promise<{ status: number; text: string; received: number | null }> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/octet-stream",
+    "X-Upload-Url": uploadUrl,
+    "X-Total-Size": String(totalSize),
+  };
+  if (chunk) {
+    headers["X-Range-Start"] = String(chunk.start);
+    headers["X-Range-End"] = String(chunk.end);
+  } else {
+    headers["X-Status-Query"] = "1";
+  }
+
+  try {
+    const res = await fetch("/api/uploads/chunk", { method: "POST", headers, body: chunk?.body });
+    const match = res.headers.get("X-Drive-Range")?.match(/bytes=0-(\d+)/);
+    return { status: res.status, text: await res.text(), received: match ? Number(match[1]) + 1 : null };
+  } catch {
+    return { status: 0, text: "", received: null };
+  }
+}
+
 async function errorFrom(res: Response, fallback: string): Promise<Error> {
   const data = await res.json().catch(() => ({}));
   return new Error(data.error ?? fallback);
@@ -97,31 +135,36 @@ export async function uploadFile(
 
   let driveFile: { id: string } | null = null;
   let start = 0;
+  let failures = 0;
   while (start < file.size) {
     const end = Math.min(start + CHUNK_SIZE, file.size) - 1;
     onProgress(`Uploading… ${Math.round((start / file.size) * 100)}%`);
 
-    const chunkRes = await fetch("/api/uploads/chunk", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "X-Upload-Url": uploadUrl,
-        "X-Range-Start": String(start),
-        "X-Range-End": String(end),
-        "X-Total-Size": String(file.size),
-      },
-      body: file.slice(start, end + 1),
-    });
+    const res = await relayToDrive(uploadUrl, file.size, { start, end, body: file.slice(start, end + 1) });
 
-    if (chunkRes.status === 308) {
-      start = end + 1;
+    if (res.status === 308) {
+      failures = 0;
+      start = res.received ?? end + 1;
       continue;
     }
-    if (chunkRes.ok) {
-      driveFile = await chunkRes.json();
+    if (res.status === 200 || res.status === 201) {
+      driveFile = JSON.parse(res.text);
       break;
     }
-    throw new Error("Upload to Drive failed partway through — try again");
+
+    // A single hiccup on a flaky connection shouldn't lose a long upload: wait,
+    // ask Drive how much it actually has, and carry on from there.
+    failures += 1;
+    if (!isRetryable(res.status) || failures > MAX_CHUNK_RETRIES) {
+      throw new Error(`Upload to Drive failed partway through (error ${res.status || "network"}) — try again`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000 * failures));
+    const check = await relayToDrive(uploadUrl, file.size, null);
+    if (check.status === 308) start = check.received ?? 0;
+    else if (check.status === 200 || check.status === 201) {
+      driveFile = JSON.parse(check.text);
+      break;
+    }
   }
   if (!driveFile) throw new Error("Upload to Drive failed partway through — try again");
 
