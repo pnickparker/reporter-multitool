@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
  * prepares the file, and the second tap (a fresh, synchronous gesture)
  * actually opens the share sheet.
  */
-export function ShareFileButton({ assetId }: { assetId: string }) {
+export function ShareFileButton({ assetId, label = "Share" }: { assetId: string; label?: string }) {
   const [supported, setSupported] = useState(false);
   const [preparedFile, setPreparedFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -76,7 +76,7 @@ export function ShareFileButton({ assetId }: { assetId: string }) {
         disabled={busy}
         className="link-action text-violet-soft"
       >
-        {busy ? "Preparing…" : preparedFile ? "Tap to share" : "Share"}
+        {busy ? "Preparing…" : preparedFile ? "Tap to share" : label}
       </button>
       {error && <span className="text-xs text-danger">{error}</span>}
     </span>

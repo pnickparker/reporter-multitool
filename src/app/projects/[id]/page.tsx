@@ -10,6 +10,7 @@ import { SocialPostsView } from "@/components/social-posts-view";
 import { ProjectDetailsForm } from "@/components/project-details-form";
 import { TagBadges } from "@/components/tag-badges";
 import { ShareFileButton } from "@/components/share-file-button";
+import { ExportTextButton } from "@/components/export-text-button";
 import { DeleteProjectButton } from "@/components/delete-project-button";
 import { EditableProjectTitle } from "@/components/editable-project-title";
 import { StatusDot, type DotState } from "@/components/status-dot";
@@ -38,6 +39,12 @@ const TYPE_LABEL: Record<string, string> = {
   NOTE: "Note",
 };
 
+/** What the "get the original file out" button says — named for the thing it hands over, so it can't be mistaken for the text export. */
+function shareLabel(type: string, isPhoto: boolean): string {
+  if (isPhoto) return "Share photo";
+  return { AUDIO: "Share audio", VIDEO: "Share video", NOTE: "Share note", DOCUMENT: "Share file" }[type] ?? "Share file";
+}
+
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const project = await prisma.project.findUnique({
@@ -55,20 +62,23 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-6">
       <AssetStatusPoller statuses={project.assets.map((a) => a.status)} />
-      <Link href="/" className="link-action -ml-2 text-muted">
-        &larr; All projects
-      </Link>
+      <div className="sticky top-0 z-20 -mx-5 mb-1 bg-ground/90 px-5 py-2 backdrop-blur">
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-surface-2 px-4 text-sm font-semibold text-ink hover:brightness-110"
+        >
+          <span aria-hidden="true">&larr;</span> Home
+        </Link>
+      </div>
       <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <EditableProjectTitle projectId={project.id} name={project.name} />
         <div className="-ml-2 flex items-center">
           {project.assets.length > 0 && (
-            <a
+            <ExportTextButton
               href={`/api/projects/${project.id}/export`}
-              download
-              className="link-action text-violet-soft"
-            >
-              Export whole project
-            </a>
+              label="Export whole project"
+              title={`${project.name} — full project`}
+            />
           )}
           <DeleteProjectButton projectId={project.id} projectName={project.name} redirectTo="/" />
         </div>
@@ -118,11 +128,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   </div>
                   <div className="flex items-center">
                     {asset.status === "READY" && (
-                      <a href={`/api/assets/${asset.id}/export`} download className="link-action text-violet-soft">
-                        Export
-                      </a>
+                      <ExportTextButton
+                        href={`/api/assets/${asset.id}/export`}
+                        label="Export text"
+                        title={`${project.name} — transcript and quotes`}
+                      />
                     )}
-                    {asset.sourceFile && <ShareFileButton assetId={asset.id} />}
+                    {asset.sourceFile && <ShareFileButton assetId={asset.id} label={shareLabel(asset.type, isPhoto)} />}
                   </div>
                 </div>
                 <p className="text-xs text-muted">
