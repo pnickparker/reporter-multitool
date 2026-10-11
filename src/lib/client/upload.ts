@@ -103,6 +103,15 @@ async function relayToDrive(
   }
 }
 
+/** A dropped connection otherwise surfaces as the browser's own wording ("Load failed", "Failed to fetch"), which means nothing to a reporter. */
+async function fetchOrExplain(input: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch {
+    throw new Error("No signal — couldn't reach the server. Nothing is lost; try again when you're back online.");
+  }
+}
+
 async function errorFrom(res: Response, fallback: string): Promise<Error> {
   const data = await res.json().catch(() => ({}));
   return new Error(data.error ?? fallback);
@@ -153,7 +162,7 @@ export async function uploadFile(
     onProgress("Starting upload…");
     const durationSeconds = isRecording ? await readMediaDuration(file, mimeType) : null;
 
-    const initRes = await fetch(`${endpoint}/init`, {
+    const initRes = await fetchOrExplain(`${endpoint}/init`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fileName: file.name, mimeType }),
@@ -201,7 +210,7 @@ export async function uploadFile(
   if (!driveFile) throw new Error("Upload to Drive failed partway through — try again");
 
   onProgress("Finishing up…");
-  const finalizeRes = await fetch(`/api/assets/${assetId}/finalize`, {
+  const finalizeRes = await fetchOrExplain(`/api/assets/${assetId}/finalize`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ driveFileId: driveFile.id, durationSeconds }),
@@ -216,7 +225,7 @@ export async function saveNote(text: string, endpoint: string): Promise<{ projec
   const formData = new FormData();
   formData.append("type", "NOTE");
   formData.append("text", text);
-  const res = await fetch(endpoint, { method: "POST", body: formData });
+  const res = await fetchOrExplain(endpoint, { method: "POST", body: formData });
   if (!res.ok) throw await errorFrom(res, "Couldn't save the note");
   return res.json();
 }
