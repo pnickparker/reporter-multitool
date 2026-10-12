@@ -101,8 +101,17 @@ async function relayToDrive(
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), chunk ? CHUNK_TIMEOUT_MS : STATUS_QUERY_TIMEOUT_MS);
+  // The same deadline covers reading the piece off the phone, which can itself stall.
+  const deadline = new Promise<never>((_, reject) => {
+    controller.signal.addEventListener("abort", () => reject(new Error("timed out")));
+  });
+  deadline.catch(() => {}); // only awaited while a piece is being read; otherwise a timeout here is already handled via the request
   try {
-    const res = await fetch("/api/uploads/chunk", { method: "POST", headers, body: chunk?.body, signal: controller.signal });
+    // Read the piece into memory (4 MB) rather than handing the browser a slice of the file to stream. After a
+    // force-quit the file comes back out of the browser's own storage, and Safari can crawl or hang when it
+    // streams a large stored file straight into a request; a plain in-memory buffer is predictable.
+    const body = chunk ? await Promise.race([chunk.body.arrayBuffer(), deadline]) : undefined;
+    const res = await fetch("/api/uploads/chunk", { method: "POST", headers, body, signal: controller.signal });
     const match = res.headers.get("X-Drive-Range")?.match(/bytes=0-(\d+)/);
     return { status: res.status, text: await res.text(), received: match ? Number(match[1]) + 1 : null };
   } catch {
