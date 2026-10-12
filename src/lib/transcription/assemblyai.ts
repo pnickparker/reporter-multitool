@@ -1,3 +1,4 @@
+import https from "node:https";
 import { Readable } from "node:stream";
 import { AssemblyAI } from "assemblyai";
 
@@ -56,17 +57,10 @@ export async function transcribeStream(stream: NodeJS.ReadableStream): Promise<T
   const apiKey = requireEnv("ASSEMBLYAI_API_KEY");
   const client = new AssemblyAI({ apiKey });
 
-  // The library's own upload helper gathers a stream into memory before sending, which defeats the point;
-  // this sends it through as it arrives (chunked), so memory stays flat however large the recording is.
-  const uploadRes = await fetch("https://api.assemblyai.com/v2/upload", {
-    method: "POST",
-    headers: { authorization: apiKey, "content-type": "application/octet-stream" },
-    body: Readable.toWeb(stream as Readable) as unknown as ReadableStream,
-    // @ts-expect-error — Node's fetch needs this to send a streamed body; it isn't in the DOM typings
-    duplex: "half",
-  });
-  if (!uploadRes.ok) throw new Error(`AssemblyAI upload failed (${uploadRes.status})`);
-  const { upload_url: uploadUrl } = (await uploadRes.json()) as { upload_url: string };
+  // Neither the library's upload helper nor fetch() with a converted stream is safe here: both gather the whole
+  // file into memory first (measured: +590 MB for a 557 MB video, which would crash the server on a multi-gigabyte
+  // one). Piping through Node's own request keeps memory flat however large the recording is.
+  const uploadUrl = await uploadStreamToAssemblyAI(stream as Readable, apiKey);
 
   const transcript = await client.transcripts.transcribe({
     audio: uploadUrl,
@@ -82,5 +76,36 @@ export async function transcribeStream(stream: NodeJS.ReadableStream): Promise<T
     text: transcript.text ?? "",
     segments: transcript.utterances ?? [],
   };
+}
+
+/** Sends a stream to AssemblyAI's upload endpoint chunk by chunk (never holding the file) and returns the URL it can be transcribed from. */
+function uploadStreamToAssemblyAI(stream: Readable, apiKey: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      "https://api.assemblyai.com/v2/upload",
+      {
+        method: "POST",
+        headers: { authorization: apiKey, "content-type": "application/octet-stream", "transfer-encoding": "chunked" },
+      },
+      (res) => {
+        let body = "";
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => {
+          if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+            reject(new Error(`AssemblyAI upload failed (${res.statusCode ?? "no answer"})`));
+            return;
+          }
+          try {
+            resolve((JSON.parse(body) as { upload_url: string }).upload_url);
+          } catch {
+            reject(new Error("AssemblyAI upload returned an answer we couldn't read"));
+          }
+        });
+      },
+    );
+    req.on("error", reject);
+    stream.on("error", (err) => req.destroy(err));
+    stream.pipe(req);
+  });
 }
 
