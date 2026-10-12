@@ -112,5 +112,7 @@ Nick wants the app to handle podcast-length interviews (40+ minutes and up). He'
 
 **Why it matters commercially:** it's the obvious paid-tier boundary — short clips included in a base plan, long-form on a higher plan or credits — which fits the credits/tiers thinking in the pricing discussion. It also strengthens the case for researching cost per interview before setting any price.
 
+**The rule that frames it (Nick):** capture can never be refused or lost; processing can wait. Reporters routinely plan a five-minute interview and end up with an hour, and "leave the interview and realize you used the wrong app" is the failure that ends trust. A saved-but-not-yet-transcribed recording is acceptable (not ideal); a recording the app wouldn't take, or lost, is not.
+
 **Honest status:** not available yet. Today a long video uploads safely but isn't auto-processed (the original is kept). The technical path (webhook-based transcription, faster storage, audio-only options, per-tier limits) is laid out in V1_SCOPE.md, "Goal: long-form recordings." Don't promise long-form to anyone until that work and the cost research are done.
 
