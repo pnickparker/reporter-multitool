@@ -106,3 +106,11 @@ Nick had mixed the two up as the project moved along (he'd understood it as "tes
 
 **Home-screen install for testers:** installing the *production* address on the home screen is fine and recommended. Do **not** have testers install a Vercel *preview* address: it can change or go stale, may require a Vercel login, and anything the app keeps on the phone (like a waiting recording) is stored per web address, so switching addresses later would strand it. Merge the new design into the main branch first, then have testers install the normal address. The app doesn't yet have an icon/manifest for a proper home-screen install (it would show a generic icon and open as a browser tab) — a small task to do before asking testers to install it.
 
+## Long-form recordings — a stated goal (added 2026-10-11)
+
+Nick wants the app to handle podcast-length interviews (40+ minutes and up). He's a podcast host and producer who records long-form conversations and says he'd find it very useful — which also makes him a real second kind of user beyond the quick-turn field reporter. Worth keeping in mind for positioning: short field clips and long-form interviews are different jobs with different costs (cost scales with recording length) and different willingness to pay.
+
+**Why it matters commercially:** it's the obvious paid-tier boundary — short clips included in a base plan, long-form on a higher plan or credits — which fits the credits/tiers thinking in the pricing discussion. It also strengthens the case for researching cost per interview before setting any price.
+
+**Honest status:** not available yet. Today a long video uploads safely but isn't auto-processed (the original is kept). The technical path (webhook-based transcription, faster storage, audio-only options, per-tier limits) is laid out in V1_SCOPE.md, "Goal: long-form recordings." Don't promise long-form to anyone until that work and the cost research are done.
+
