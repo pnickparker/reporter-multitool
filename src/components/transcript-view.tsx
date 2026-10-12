@@ -21,7 +21,7 @@ export function TranscriptView({
     utterances.length === 0 ? (
       <p className="whitespace-pre-wrap">{text}</p>
     ) : (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4">
         {utterances.map((u, i) => (
           <p key={i}>
             <span className="font-semibold text-violet-soft">Speaker {u.speaker ?? "?"}:</span> {u.text}
