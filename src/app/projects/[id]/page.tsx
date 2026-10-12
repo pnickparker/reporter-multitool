@@ -138,7 +138,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                         title={`${project.name} — transcript and quotes`}
                       />
                     )}
-                    {asset.sourceFile && <ShareFileButton assetId={asset.id} label={shareLabel(asset.type, isPhoto)} />}
+                    {asset.sourceFile && <ShareFileButton assetId={asset.id} driveFileId={asset.sourceFile} label={shareLabel(asset.type, isPhoto)} />}
                   </div>
                 </div>
                 <p className="text-xs text-muted">

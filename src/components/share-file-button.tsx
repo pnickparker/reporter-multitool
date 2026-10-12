@@ -15,11 +15,34 @@ import { useEffect, useState } from "react";
  * prepares the file, and the second tap (a fresh, synchronous gesture)
  * actually opens the share sheet.
  */
-export function ShareFileButton({ assetId, label = "Share" }: { assetId: string; label?: string }) {
+/**
+ * Largest file handed to the share sheet. The phone has to hold the whole file
+ * in memory to do that, and a multi-gigabyte video can't be — a 4.7 GB one
+ * failed after minutes. Beyond this, the reporter is pointed at Drive instead.
+ * A cautious first guess, not a measured limit: raise it only after testing
+ * bigger files on real phones.
+ */
+const MAX_SHAREABLE_BYTES = 500 * 1024 * 1024;
+
+function formatBytes(bytes: number): string {
+  return bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(1)} GB` : `${Math.round(bytes / 1024 ** 2)} MB`;
+}
+
+export function ShareFileButton({
+  assetId,
+  driveFileId,
+  label = "Share",
+}: {
+  assetId: string;
+  /** Where the original lives in Drive — the way out for files too big to share from here. */
+  driveFileId: string;
+  label?: string;
+}) {
   const [supported, setSupported] = useState(false);
   const [preparedFile, setPreparedFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tooLargeBytes, setTooLargeBytes] = useState<number | null>(null);
 
   useEffect(() => {
     // Must run post-mount, not during the initial render, so the server-rendered
@@ -34,8 +57,17 @@ export function ShareFileButton({ assetId, label = "Share" }: { assetId: string;
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/assets/${assetId}/file`);
-      if (!res.ok) throw new Error("Couldn't fetch file");
+      const controller = new AbortController();
+      const res = await fetch(`/api/assets/${assetId}/file`, { signal: controller.signal });
+      if (!res.ok) throw new Error("Couldn't fetch the file — try again, or open it in Drive");
+
+      // The size arrives with the headers, before any of the file: too big to hold in the phone's memory means stop now.
+      const length = Number(res.headers.get("Content-Length") ?? 0);
+      if (length > MAX_SHAREABLE_BYTES) {
+        controller.abort();
+        setTooLargeBytes(length);
+        return;
+      }
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") ?? "";
       const utf8Name = disposition.match(/filename\*=UTF-8''([^;]+)/)?.[1];
@@ -66,6 +98,22 @@ export function ShareFileButton({ assetId, label = "Share" }: { assetId: string;
       return;
     }
     void prepareFile();
+  }
+
+  if (tooLargeBytes !== null) {
+    return (
+      <span className="inline-flex flex-wrap items-center justify-end gap-x-2 text-xs text-muted">
+        Too big to share from here ({formatBytes(tooLargeBytes)}).
+        <a
+          href={`https://drive.google.com/file/d/${driveFileId}/view`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link-action text-violet-soft"
+        >
+          Open in Drive
+        </a>
+      </span>
+    );
   }
 
   return (
