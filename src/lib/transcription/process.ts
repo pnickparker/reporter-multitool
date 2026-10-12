@@ -25,6 +25,12 @@ async function runPipeline(assetId: string, transcribe: () => Promise<{ text: st
       create: { assetId, text, segments: segments as object },
     });
 
+    // Nothing was said (or nothing could be recognized): there is nothing to find quotes in, so skip the AI steps.
+    if (text.trim().length === 0) {
+      await prisma.asset.update({ where: { id: assetId }, data: { status: "READY", errorMessage: null } });
+      return;
+    }
+
     await prisma.asset.update({ where: { id: assetId }, data: { status: "GENERATING" } });
     await processAiPipeline(assetId);
   } catch (err) {

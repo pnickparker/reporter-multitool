@@ -17,6 +17,16 @@ export function TranscriptView({
 }) {
   const utterances = asUtterances(segments);
 
+  // A recording can have sound but no recognizable speech (music, a crowd, a performance). Say so, rather than showing a blank panel.
+  if (text.trim().length === 0 && utterances.length === 0) {
+    return (
+      <p className="mt-3 rounded-2xl bg-surface-2 px-3 py-2 text-sm leading-5 text-muted">
+        No speech was detected in this recording, so there is no transcript or best moments. If it should have words,
+        the voices may have been too far from the microphone or drowned out by music or noise.
+      </p>
+    );
+  }
+
   const body =
     utterances.length === 0 ? (
       <p className="whitespace-pre-wrap">{text}</p>
