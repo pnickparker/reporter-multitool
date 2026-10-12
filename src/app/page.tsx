@@ -5,15 +5,20 @@ import { TagBadges } from "@/components/tag-badges";
 import { ProjectRowHeader } from "@/components/project-row-header";
 import { CaptureActions } from "@/components/capture-actions";
 import type { DotState } from "@/components/status-dot";
-import { isHeldForLength } from "@/lib/assets/processing-limits";
+import { isSavedNotProcessed, isStuckProcessing } from "@/lib/assets/processing-limits";
 
 const WORKING_STATUSES = ["TRANSCRIBING", "GENERATING"];
 
-function projectDotState(assets: { status: string; errorMessage: string | null }[]): DotState {
-  if (assets.some((a) => WORKING_STATUSES.includes(a.status))) return "working";
+type DotAsset = { status: string; errorMessage: string | null; uploadedAt: Date; processingStartedAt: Date | null };
+
+function projectDotState(assets: DotAsset[]): DotState {
+  // Cut off by the server's time limit but still marked "Transcribing": saved, not working.
+  const working = assets.filter((a) => WORKING_STATUSES.includes(a.status) && !isStuckProcessing(a));
+  if (working.length > 0) return "working";
+  if (assets.some(isStuckProcessing)) return "held";
   // A recording saved but skipped for length isn't a failure — it gets its own calmer dot.
-  if (assets.some((a) => a.status === "ERROR" && !isHeldForLength(a))) return "error";
-  if (assets.some(isHeldForLength)) return "held";
+  if (assets.some((a) => a.status === "ERROR" && !isSavedNotProcessed(a))) return "error";
+  if (assets.some(isSavedNotProcessed)) return "held";
   if (assets.some((a) => a.status === "READY")) return "ready";
   return "idle";
 }
@@ -21,14 +26,21 @@ function projectDotState(assets: { status: string; errorMessage: string | null }
 /** The project with clips being processed right now, if any — recent only, so a long-stuck row doesn't show as "working" forever. */
 async function getProcessingBanner(ownerId: string) {
   const since = new Date(Date.now() - 60 * 60 * 1000);
-  const working = await prisma.asset.findMany({
+  const allWorking = await prisma.asset.findMany({
     where: {
       status: { in: WORKING_STATUSES as ("TRANSCRIBING" | "GENERATING")[] },
       uploadedAt: { gte: since },
       project: { ownerId },
     },
-    select: { project: { select: { id: true, name: true } } },
+    select: {
+      status: true,
+      uploadedAt: true,
+      processingStartedAt: true,
+      project: { select: { id: true, name: true } },
+    },
   });
+  // Items the server gave up on still carry a "working" status; they aren't working.
+  const working = allWorking.filter((a) => !isStuckProcessing(a));
   if (working.length === 0) return null;
   const first = working[0].project;
   const count = working.filter((a) => a.project.id === first.id).length;
@@ -65,7 +77,7 @@ export default async function Home({
       where: { ownerId: user.id, ...(tag ? { tags: { has: tag } } : {}) },
       include: {
         _count: { select: { assets: true } },
-        assets: { select: { status: true, errorMessage: true } },
+        assets: { select: { status: true, errorMessage: true, uploadedAt: true, processingStartedAt: true } },
       },
       orderBy: { createdAt: "desc" },
     }),

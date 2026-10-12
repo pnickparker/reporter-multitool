@@ -15,7 +15,9 @@ import { DeleteProjectButton } from "@/components/delete-project-button";
 import { EditableProjectTitle } from "@/components/editable-project-title";
 import { StatusDot, type DotState } from "@/components/status-dot";
 import { MediaPlayer, MediaScope } from "@/components/media-scope";
-import { isHeldForLength } from "@/lib/assets/processing-limits";
+import { PROCESSING_TIMEOUT_MESSAGE, isSavedNotProcessed, isStuckProcessing } from "@/lib/assets/processing-limits";
+import { TranscribeNowButton } from "@/components/transcribe-now-button";
+import { RemoveUnfinishedUpload } from "@/components/remove-unfinished-upload";
 
 const STATUS_DOT: Record<string, DotState> = {
   READY: "ready",
@@ -40,6 +42,13 @@ const TYPE_LABEL: Record<string, string> = {
   NOTE: "Note",
 };
 
+/** Longest a real upload is expected to stay "Uploading" (a ~5 GB video took about 35 minutes on Wi-Fi). Past this, the row is a leftover from an upload that never finished. */
+const STALE_UPLOAD_MS = 2 * 60 * 60 * 1000;
+
+function isStaleUpload(asset: { status: string; uploadedAt: Date }): boolean {
+  return asset.status === "UPLOADING" && Date.now() - asset.uploadedAt.getTime() > STALE_UPLOAD_MS;
+}
+
 /** What the "get the original file out" button says — named for the thing it hands over, so it can't be mistaken for the text export. */
 function shareLabel(type: string, isPhoto: boolean): string {
   if (isPhoto) return "Share photo";
@@ -62,7 +71,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-6">
-      <AssetStatusPoller statuses={project.assets.map((a) => a.status)} />
+      {/* Leftover placeholders and cut-off processing never finish on their own, so they must not keep the page refreshing. */}
+      <AssetStatusPoller
+        statuses={project.assets.filter((a) => !isStaleUpload(a) && !isStuckProcessing(a)).map((a) => a.status)}
+      />
       <div className="sticky top-0 z-20 -mx-5 mb-1 bg-ground/90 px-5 py-2 backdrop-blur">
         <Link
           href="/"
@@ -118,7 +130,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           const playable = (asset.type === "AUDIO" || asset.type === "VIDEO") && !!asset.sourceFile;
           const isPhoto = asset.type === "DOCUMENT" && !!asset.mimeType?.startsWith("image/") && !!asset.sourceFile;
           // Saved in full but skipped for length: shown as saved, never as a failure.
-          const held = isHeldForLength(asset);
+          const heldRaw = isSavedNotProcessed(asset);
+          // Still marked "Transcribing" long after the server could have been working on it: it was cut off, not still going.
+          const stuck = isStuckProcessing(asset);
+          const held = heldRaw || stuck;
+          const stale = isStaleUpload(asset);
+          const canTranscribe = (asset.type === "AUDIO" || asset.type === "VIDEO") && !!asset.sourceFile;
           return (
             <li key={asset.id} className="rounded-3xl bg-surface p-4 text-sm">
               <MediaScope hasMedia={playable}>
@@ -127,7 +144,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     <StatusDot state={held ? "held" : (STATUS_DOT[asset.status] ?? "idle")} />
                     <span className="font-bold">
                       {isPhoto ? "Photo" : (TYPE_LABEL[asset.type] ?? asset.type)} ·{" "}
-                      {held ? "Saved, not transcribed" : (STATUS_LABEL[asset.status] ?? asset.status)}
+                      {held ? "Saved, not transcribed" : stale ? "Upload didn't finish" : (STATUS_LABEL[asset.status] ?? asset.status)}
                     </span>
                   </div>
                   <div className="flex items-center">
@@ -162,6 +179,19 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               {playable && (asset.type === "AUDIO" || asset.type === "VIDEO") && (
                   <MediaPlayer assetId={asset.id} kind={asset.type} />
                 )}
+                {stale && (
+                  <div className="mt-2 rounded-2xl bg-surface-2 px-3 py-3 text-xs leading-5 text-muted">
+                    This upload never finished, so there is nothing to open here. If you still have the recording, upload it
+                    again.
+                    <RemoveUnfinishedUpload assetId={asset.id} projectRemainsWithOthers={project.assets.length > 1} />
+                  </div>
+                )}
+                {stuck && (
+                  <p className="mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 text-butter">
+                    {PROCESSING_TIMEOUT_MESSAGE}
+                  </p>
+                )}
+                {held && canTranscribe && <TranscribeNowButton assetId={asset.id} />}
                 {asset.status === "ERROR" && asset.errorMessage && (
                   <p className={`mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 ${held ? "text-butter" : "text-danger"}`}>
                     {asset.errorMessage}

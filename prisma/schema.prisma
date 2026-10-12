@@ -72,6 +72,8 @@ model Asset {
   /// The file's MIME type as the browser reported it at upload — lets the page tell a photo (image/*) from a PDF among DOCUMENT assets without changing the AssetType enum, which the live site's older code couldn't read.
   mimeType      String?
   uploadedAt    DateTime    @default(now())
+  /// When processing (transcription + AI steps) last started — lets the app tell "still working" from "cut off by the server's time limit." Null on older rows; uploadedAt stands in.
+  processingStartedAt DateTime?
   status        AssetStatus @default(UPLOADING)
   errorMessage  String?
 

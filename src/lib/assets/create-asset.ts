@@ -36,7 +36,7 @@ async function handleMediaUpload(asset: Asset, file: File, user: CurrentUser) {
 
   const updated = await prisma.asset.update({
     where: { id: asset.id },
-    data: { sourceFile: uploaded.id, status: "TRANSCRIBING" },
+    data: { sourceFile: uploaded.id, status: "TRANSCRIBING", processingStartedAt: new Date() },
   });
 
   after(() => processTranscription(asset.id, buffer));
@@ -196,6 +196,7 @@ export async function finalizeUpload(
       duration: stats.durationSeconds,
       fileSizeBytes: storableFileSize(stats.fileSizeBytes),
       status: "TRANSCRIBING",
+      processingStartedAt: new Date(),
     },
   });
 

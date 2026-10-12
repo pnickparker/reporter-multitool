@@ -69,12 +69,30 @@ if (MAX_ESTIMATED_PROCESSING_SECONDS >= VERCEL_HARD_CEILING_SECONDS) {
 export const OVER_LIMIT_MESSAGE =
   "Saved. This recording is too long to transcribe automatically right now, so there is no transcript or best moments yet. Your original is safe — tap Share on this item to get it out.";
 
-/** The wording used before the message above (kept so older rows are still recognised). */
+/**
+ * What a recording says when it was saved but its processing didn't finish in
+ * time (the server gives each recording a fixed number of minutes). Like the
+ * over-limit message, it must read as "saved, transcript not made yet" — never
+ * as a failure or a loss.
+ */
+export const PROCESSING_TIMEOUT_MESSAGE =
+  "Saved. Processing this recording took longer than the server allows, so there is no transcript or best moments yet. Your original is safe — tap Share on this item to get it out, or try Transcribe now.";
+
+/** The wording used before the messages above (kept so older rows are still recognised). */
 const LEGACY_OVER_LIMIT_PREFIX = "This recording is too long/large";
 
-/** True for a recording that was saved fine but skipped for length — as opposed to one that genuinely failed. */
-export function isHeldForLength(asset: { status: string; errorMessage: string | null }): boolean {
+/** True for a recording that was saved fine but not processed (too long, or ran out of time) — as opposed to one that genuinely failed. */
+export function isSavedNotProcessed(asset: { status: string; errorMessage: string | null }): boolean {
   if (asset.status !== "ERROR" || !asset.errorMessage) return false;
-  return asset.errorMessage === OVER_LIMIT_MESSAGE || asset.errorMessage.startsWith(LEGACY_OVER_LIMIT_PREFIX);
+  return asset.errorMessage.startsWith("Saved. ") || asset.errorMessage.startsWith(LEGACY_OVER_LIMIT_PREFIX);
 }
 
+/** How long processing may sit in "Transcribing" before the screen stops claiming it's still working: the server's own limit is 5 minutes, so anything older was cut off. */
+const STUCK_PROCESSING_MS = 12 * 60 * 1000;
+
+/** A recording still marked as processing long after the server could have been working on it. */
+export function isStuckProcessing(asset: { status: string; uploadedAt: Date; processingStartedAt: Date | null }): boolean {
+  if (asset.status !== "TRANSCRIBING" && asset.status !== "GENERATING") return false;
+  const startedAt = asset.processingStartedAt ?? asset.uploadedAt; // older rows have no start time recorded
+  return Date.now() - startedAt.getTime() > STUCK_PROCESSING_MS;
+}
