@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import "./globals.css";
@@ -16,6 +16,12 @@ const bricolage = Bricolage_Grotesque({
 export const metadata: Metadata = {
   title: "Mobile News Bureau",
   description: "Capture, transcribe, and package reporting content.",
+  // When saved to an iPhone home screen: open full-screen, with a short label under the icon.
+  appleWebApp: { capable: true, title: "News Bureau", statusBarStyle: "black" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#15111f",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
