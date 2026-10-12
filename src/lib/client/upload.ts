@@ -67,6 +67,11 @@ function readMediaDuration(file: File, mimeType: string): Promise<number | null>
 // Patience for a phone that briefly loses signal or sleeps: 8 tries with a capped backoff is about a minute and a quarter.
 const MAX_CHUNK_RETRIES = 8;
 
+// A request that goes silent (a phone half-connected after signal loss or a force-quit) never errors on its own,
+// so without a deadline the upload would sit frozen forever and the retry logic below would never get to run.
+const CHUNK_TIMEOUT_MS = 120_000; // a 4 MB piece, even at a slow ~35 KB/s
+const STATUS_QUERY_TIMEOUT_MS = 30_000;
+
 /** Server hiccups and dropped connections are worth retrying; a rejected request (bad session, no permission) is not. */
 function isRetryable(status: number): boolean {
   return status === 0 || status === 408 || status === 429 || status >= 500;
@@ -94,12 +99,16 @@ async function relayToDrive(
     headers["X-Status-Query"] = "1";
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), chunk ? CHUNK_TIMEOUT_MS : STATUS_QUERY_TIMEOUT_MS);
   try {
-    const res = await fetch("/api/uploads/chunk", { method: "POST", headers, body: chunk?.body });
+    const res = await fetch("/api/uploads/chunk", { method: "POST", headers, body: chunk?.body, signal: controller.signal });
     const match = res.headers.get("X-Drive-Range")?.match(/bytes=0-(\d+)/);
     return { status: res.status, text: await res.text(), received: match ? Number(match[1]) + 1 : null };
   } catch {
     return { status: 0, text: "", received: null };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -199,6 +208,7 @@ export async function uploadFile(
     if (!isRetryable(res.status) || failures > MAX_CHUNK_RETRIES) {
       throw new Error(`Upload to Drive failed partway through (error ${res.status || "network"}) — try again`);
     }
+    onProgress(`Connection dropped — retrying (${failures} of ${MAX_CHUNK_RETRIES})…`);
     await new Promise((resolve) => setTimeout(resolve, Math.min(2 ** failures, 15) * 1000));
     const check = await relayToDrive(uploadUrl, file.size, null);
     if (check.status === 308) start = check.received ?? 0;

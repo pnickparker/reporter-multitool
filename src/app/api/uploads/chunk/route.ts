@@ -3,6 +3,10 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const DRIVE_UPLOAD_PREFIX = "https://www.googleapis.com/upload/drive/v3/files";
 
+/** Give Drive this long for one piece; past it the browser is told promptly (504) so it can retry, rather than waiting on a request that may never answer. */
+const DRIVE_TIMEOUT_MS = 100_000;
+export const maxDuration = 120;
+
 /**
  * Relays one chunk of a large audio/video file to its Drive resumable
  * upload session. Google's Drive API doesn't allow a browser to PUT
@@ -41,9 +45,11 @@ export async function POST(req: NextRequest) {
         "Content-Length": String(chunk.length),
       },
       body: isStatusQuery ? undefined : chunk,
+      signal: AbortSignal.timeout(DRIVE_TIMEOUT_MS),
     });
-  } catch {
-    return NextResponse.json({ error: "Couldn't reach Drive" }, { status: 502 });
+  } catch (err) {
+    const timedOut = err instanceof Error && err.name === "TimeoutError";
+    return NextResponse.json({ error: timedOut ? "Drive took too long" : "Couldn't reach Drive" }, { status: timedOut ? 504 : 502 });
   }
 
   const body = await driveRes.text();
