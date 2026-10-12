@@ -393,6 +393,11 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
             </button>
           </div>
         )}
+        {!busy && (
+          <p className="mt-2.5 text-xs leading-4 text-violet-100">
+            For audio, record with your phone&apos;s voice recorder, then tap Upload.
+          </p>
+        )}
         {notePanel}
         {errorLine}
       </section>
@@ -421,7 +426,8 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
         </button>
       </div>
       <p className="mt-2 text-xs text-muted">
-        Upload takes a recording, photo, or PDF already on your phone.
+        Upload takes a recording, photo, or PDF already on your phone. For audio, record with your phone&apos;s voice
+        recorder, then upload it here.
       </p>
       {progressPanel}
       {waitingList}
