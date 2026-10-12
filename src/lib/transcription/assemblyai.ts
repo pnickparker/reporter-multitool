@@ -7,6 +7,16 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/**
+ * How many speakers the labeler is told to expect. News recordings are mostly
+ * two-person interviews, and without this hint the labeler often merged the two
+ * voices into one block or invented a third speaker (checked on 11 real
+ * recordings: every multi-person one improved). The cost: a recording of one
+ * person talking can occasionally be cut in two. Reporters should still check
+ * the labels, as with any transcription tool.
+ */
+const EXPECTED_SPEAKERS = 2;
+
 export interface TranscriptionResult {
   text: string;
   segments: unknown;
@@ -23,6 +33,7 @@ export async function transcribeBuffer(buffer: Buffer): Promise<TranscriptionRes
   const transcript = await client.transcripts.transcribe({
     audio: buffer,
     speaker_labels: true,
+    speakers_expected: EXPECTED_SPEAKERS,
   });
 
   if (transcript.status === "error") {
@@ -60,6 +71,7 @@ export async function transcribeStream(stream: NodeJS.ReadableStream): Promise<T
   const transcript = await client.transcripts.transcribe({
     audio: uploadUrl,
     speaker_labels: true,
+    speakers_expected: EXPECTED_SPEAKERS,
   });
 
   if (transcript.status === "error") {
