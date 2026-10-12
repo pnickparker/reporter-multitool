@@ -8,6 +8,9 @@
 // (Google's endpoint itself refuses direct cross-origin browser uploads, so
 // chunks are relayed through our own same-origin server).
 const CHUNK_SIZE = 4 * 1024 * 1024;
+// After a failed piece the next try uses a smaller one (down to this, also a multiple of 256KB), so a connection
+// or phone that can't push 4 MB through in one go can still get the file across in smaller bites.
+const MIN_CHUNK_SIZE = 256 * 1024;
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   mov: "video/quicktime",
@@ -86,7 +89,7 @@ async function relayToDrive(
   uploadUrl: string,
   totalSize: number,
   chunk: { start: number; end: number; body: Blob } | null,
-): Promise<{ status: number; text: string; received: number | null }> {
+): Promise<{ status: number; text: string; received: number | null; detail: string | null }> {
   const headers: Record<string, string> = {
     "Content-Type": "application/octet-stream",
     "X-Upload-Url": uploadUrl,
@@ -106,16 +109,29 @@ async function relayToDrive(
     controller.signal.addEventListener("abort", () => reject(new Error("timed out")));
   });
   deadline.catch(() => {}); // only awaited while a piece is being read; otherwise a timeout here is already handled via the request
+  // `detail` says *why* a status-0 failure happened (the reporter's screen shows it), so "network" can't hide a different cause.
+  const failed = (detail: string) => ({ status: 0, text: "", received: null, detail });
   try {
-    // Read the piece into memory (4 MB) rather than handing the browser a slice of the file to stream. After a
+    // Read the piece into memory rather than handing the browser a slice of the file to stream. After a
     // force-quit the file comes back out of the browser's own storage, and Safari can crawl or hang when it
     // streams a large stored file straight into a request; a plain in-memory buffer is predictable.
-    const body = chunk ? await Promise.race([chunk.body.arrayBuffer(), deadline]) : undefined;
-    const res = await fetch("/api/uploads/chunk", { method: "POST", headers, body, signal: controller.signal });
-    const match = res.headers.get("X-Drive-Range")?.match(/bytes=0-(\d+)/);
-    return { status: res.status, text: await res.text(), received: match ? Number(match[1]) + 1 : null };
-  } catch {
-    return { status: 0, text: "", received: null };
+    let body: ArrayBuffer | undefined;
+    if (chunk) {
+      try {
+        body = await Promise.race([chunk.body.arrayBuffer(), deadline]);
+      } catch (err) {
+        const timedOut = err instanceof Error && err.message === "timed out";
+        return failed(timedOut ? "timed out reading the recording" : `couldn't read the recording (${err instanceof Error ? err.name : "unknown"})`);
+      }
+    }
+    try {
+      const res = await fetch("/api/uploads/chunk", { method: "POST", headers, body, signal: controller.signal });
+      const match = res.headers.get("X-Drive-Range")?.match(/bytes=0-(\d+)/);
+      return { status: res.status, text: await res.text(), received: match ? Number(match[1]) + 1 : null, detail: null };
+    } catch (err) {
+      if (controller.signal.aborted) return failed("timed out");
+      return failed(err instanceof Error ? `${err.name}: ${err.message}`.slice(0, 80) : "request failed");
+    }
   } finally {
     clearTimeout(timer);
   }
@@ -195,14 +211,18 @@ export async function uploadFile(
   const { assetId, uploadUrl, projectId, durationSeconds } = session;
 
   let failures = 0;
+  let pieceSize = CHUNK_SIZE;
+  let successes = 0;
   while (!driveFile && start < file.size) {
-    const end = Math.min(start + CHUNK_SIZE, file.size) - 1;
+    const end = Math.min(start + pieceSize, file.size) - 1;
     onProgress(`Uploading… ${Math.round((start / file.size) * 100)}%`);
 
     const res = await relayToDrive(uploadUrl, file.size, { start, end, body: file.slice(start, end + 1) });
 
     if (res.status === 308) {
       failures = 0;
+      // Back to full-size pieces once the connection has proven itself again.
+      if (++successes >= 4) pieceSize = Math.min(CHUNK_SIZE, pieceSize * 2);
       start = res.received ?? end + 1;
       continue;
     }
@@ -214,10 +234,13 @@ export async function uploadFile(
     // A single hiccup on a flaky connection shouldn't lose a long upload: wait,
     // ask Drive how much it actually has, and carry on from there.
     failures += 1;
+    successes = 0;
+    pieceSize = Math.max(MIN_CHUNK_SIZE, Math.floor(pieceSize / 2));
+    const why = res.detail ? `: ${res.detail}` : "";
     if (!isRetryable(res.status) || failures > MAX_CHUNK_RETRIES) {
-      throw new Error(`Upload to Drive failed partway through (error ${res.status || "network"}) — try again`);
+      throw new Error(`Upload to Drive failed partway through (error ${res.status || "network"}${why}) — try again`);
     }
-    onProgress(`Connection dropped — retrying (${failures} of ${MAX_CHUNK_RETRIES})…`);
+    onProgress(`Connection dropped — retrying (${failures} of ${MAX_CHUNK_RETRIES})${why ? ` (${res.detail})` : ""}…`);
     await new Promise((resolve) => setTimeout(resolve, Math.min(2 ** failures, 15) * 1000));
     const check = await relayToDrive(uploadUrl, file.size, null);
     if (check.status === 308) start = check.received ?? 0;
