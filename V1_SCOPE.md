@@ -4,25 +4,23 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 
 **See also: "Reporter Multi-Tool: Product Plan"** — a fuller vision/workflow doc Nick built on claude.ai (not in this repo by design; saved as PDF to `~/Library/Mobile Documents/com~apple~CloudDocs/01_Multitool/`). It's the source of truth for the *why* behind v1 scope and the locked build order below; this file stays the technical build log.
 
-## Next session checklist (updated 2026-10-12 night — start here)
+## Next session checklist (updated 2026-10-12, end of day — start here)
 
-State: everything is pushed to `redesign-purple-green` through `fdb1576`, except documentation commits (push those first: `git push`). The new preview has not been phone-tested yet. Use the **stable branch address** (the one containing `git-redesign-purple-green`), not a per-build address, so phone-side backups carry across builds.
+**State:** everything is on the `redesign-purple-green` branch (pushed through `9f766c9`, plus any notes commits since). It is NOT merged to `main`, so the testers' live site still has the old look and none of the fixes below. Use the **stable branch address** (the one containing `git-redesign-purple-green`) for every test; previews need a Vercel login, so testers cannot open them.
 
-**Decisions to make (Claude's recommendations in brackets):**
-1. Re-run the two 62-second football recordings through transcription with a speaker-count hint, to see whether it fixes the "one speaker" results before changing any default. [Yes — a few cents of credit; re-processes a tester's audio, so needs Nick's go-ahead.]
-2. Add a clear blank line between speakers in the transcript. [Yes — one-line change, include before the merge.]
+**Built and checked today (details in the sections above):** resume after a force-quit and automatic retries; phone-side backup, Save to phone, screen stays awake; clear failure reasons and smaller retry pieces; "Saved, not transcribed" (amber) instead of red errors; Transcribe now; stuck-processing detection and its own deadline; real streaming from Drive to transcription (memory flat); files over 2.1 GB no longer break the final save; Share video refuses early when too large; Export text stays in the app; big Home button; no-speech message; 2-speaker default; blank line between speakers; leftover-upload Remove; record-circle icon and home-screen install; limit rebuilt from measurements (35 minutes / 3.6 GB processed in 159 s); voice-recorder hint under Upload.
 
-**Phone tests on the new build (Nick):**
-a. **Force-quit resume (the important one).** Upload a 1–2 minute video (100 MB+) with Upload, swipe Safari away at about half, reopen the same address, tap **Resume upload**. Does it move steadily to the end? If it freezes, how long, and does "Connection dropped — retrying…" appear?
-b. Open the 4.7 GB project: should read amber **"Video · Saved, not transcribed"**, and **Share video** should say "Too big to share from here (4.6 GB). Open in Drive" within seconds.
-c. **Share video limits:** try ~300 MB, ~700 MB and ~1 GB videos and report what happens, so the 500 MB guess can be set from real results.
-d. **Save to phone** on a waiting recording, check Photos.
-e. Photo, PDF, dictated note. Airplane-mode-before-picking-a-file (expect "No signal — … Nothing is lost").
-f. If a stall persists: Vercel → project → **Logs**, filter `/api/uploads/chunk`, send the status codes and durations around the stall.
+**Tomorrow, in order:**
+1. **Long-audio test (Nick):** upload an hour or more of audio (a podcast episode) on the stable address; report how long it takes to finish and whether it lands ready or amber. Tightens the audio ceiling (the formula predicts about 1.5 hours).
+2. **Android test (a tester):** the same script as the iPhone — camera button (does it open the camera or a file picker?), Upload, a voice recording from their phone's own recorder (any odd format?), airplane mode mid-upload, closing the tab and resuming, Save to phone, Share video, Export text.
+3. **iPhone home-screen app (Nick):** the icon and "News Bureau" label looked right? Full-screen? It asks for the passphrase again (separate storage) — expected.
+4. **Optional before the merge:** the honest progress display (steps, a timer, "you can close the app"; the typical-time numbers can now come from the measurements); speaker renaming (Michael's request); the amber state wording check on a real phone.
+5. **Merge to `main` when 1–3 pass:** Claude merges locally (expect small conflicts in the notes files), Nick pushes `main`, confirm the **production** deployment shows Ready on the new commit, send testers a heads-up about the new look and the safeguards (and that file size, not just minutes, decides whether a recording is transcribed automatically), then testers add the normal address to their home screens — **install first, then use** (a home-screen app keeps its own storage).
+6. **Tester questions to send (now 1–9)** plus anything new: the Share/Export labels, whether the Home button is easy to find, whether they hit "preparing…" waits with old iCloud videos.
 
-**Then:** home-screen icon (Nick has an idea — discuss), Android test by a tester (same script), merge to `main` (expect small notes-file conflicts; Claude merges, Nick pushes `main`), confirm the production deployment is Ready on the new commit, heads-up message to testers, testers add the normal address to their home screens.
+**Parked (don't build yet):** long-form beyond the limit (background transcription, faster storage); in-app or desktop recorder; rename/reassign speakers; wider 64-bit file-size column (do after the merge); Word files; scorecard/stats (Notes covers it); accounts and data separation (the real gate to paying users); pricing and cost-per-interview research; name and trademark clearance.
 
-**Parked for later (don't build yet):** rename "Speaker A/B" to real names; Phase II clip ideas; wider file-size column (64-bit) after the merge; long-form (webhook transcription, faster storage); sports note template.
+**Housekeeping to remember:** Nick's own test projects and files (the 557 MB music video, the 7.6 GB video, leftover placeholders) are his to delete; the stable address needs the passphrase once per device; Claude never pushes — Nick runs `git push`.
 
 ## Status as of 2026-09-25 (read this first when resuming)
 
