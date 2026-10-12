@@ -4,16 +4,25 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 
 **See also: "Reporter Multi-Tool: Product Plan"** — a fuller vision/workflow doc Nick built on claude.ai (not in this repo by design; saved as PDF to `~/Library/Mobile Documents/com~apple~CloudDocs/01_Multitool/`). It's the source of truth for the *why* behind v1 scope and the locked build order below; this file stays the technical build log.
 
-## Next session checklist (set 2026-10-10 — start here)
+## Next session checklist (updated 2026-10-12 night — start here)
 
-Goal: get the new design and the never-lose-a-recording safeguards in front of testers safely, with both phones verified first.
+State: everything is pushed to `redesign-purple-green` through `fdb1576`, except documentation commits (push those first: `git push`). The new preview has not been phone-tested yet. Use the **stable branch address** (the one containing `git-redesign-purple-green`), not a per-build address, so phone-side backups carry across builds.
 
-0. **Push what's sitting local.** The `redesign-purple-green` branch has 4 unpushed commits (resume/Try again, camera-roll note, never-lose-a-recording, notes) and `main` has 2 unpushed docs commits (naming brainstorm + Butter Pen correction). Nick runs `git push` on the branch; Claude switches to `main` for the second push. Check the new preview shows **Ready** in Vercel for the newest commit before testing ("committed is not deployed").
-1. **Home-screen icon and install setup** (Claude builds). The app has no manifest or icon, so a saved shortcut shows a generic icon and opens as a browser tab. Needs a decision first: placeholder (green "+" on purple, like the app's button) or a real mark. Name is still the working name "Mobile News Bureau."
-2. **iPhone test (Nick), on the new preview.** Script: (a) shoot a short video with the in-app camera on wifi — it should upload, then transcribe, then show quotes; (b) shoot another and turn on airplane mode mid-upload — expect a Try again/Resume button and, after turning signal back on, it finishes; (c) start an upload, close the tab mid-way, reopen — expect "A recording is waiting to upload" on Home, then Resume; (d) tap Save to phone and confirm Save Video puts it in Photos; (e) a photo, a PDF, and a dictated note; (f) afterwards check no duplicate items and no stuck "Uploading" rows. Tell Claude the exact error text (including any code in parentheses) for anything that fails.
-3. **Android test (one tester).** Same script. Specifically report: does the camera button open the camera with photo and video choices, or a file picker instead (behavior not yet checked on Android); does Save to phone work; do the phone-side copy and Resume survive closing the tab.
-4. **If both pass:** (a) send testers a heads-up about the new look and the new safeguards, plus the tester-question list (now questions 1–9); (b) Claude merges the branch into `main` locally — expect small merge conflicts in V1_SCOPE.md/BUSINESS_NOTES.md since both branches edited them; (c) Nick pushes `main`; (d) confirm the **production** deployment is Ready on the new commit before telling anyone; (e) testers add the normal production address (not a preview address) to their home screens.
-5. **Also bring:** answers to the tester questions as they arrive; whether an upload on a long video hit the processing limit; and any tester feedback on the new look. Do not delete anything from Nick's Drive or database without his say (an earlier cleanup this session removed an empty failed-upload row of Nick's by mistake; no recording was lost, but the rule stands: only delete test data identified by name).
+**Decisions to make (Claude's recommendations in brackets):**
+1. Re-run the two 62-second football recordings through transcription with a speaker-count hint, to see whether it fixes the "one speaker" results before changing any default. [Yes — a few cents of credit; re-processes a tester's audio, so needs Nick's go-ahead.]
+2. Add a clear blank line between speakers in the transcript. [Yes — one-line change, include before the merge.]
+
+**Phone tests on the new build (Nick):**
+a. **Force-quit resume (the important one).** Upload a 1–2 minute video (100 MB+) with Upload, swipe Safari away at about half, reopen the same address, tap **Resume upload**. Does it move steadily to the end? If it freezes, how long, and does "Connection dropped — retrying…" appear?
+b. Open the 4.7 GB project: should read amber **"Video · Saved, not transcribed"**, and **Share video** should say "Too big to share from here (4.6 GB). Open in Drive" within seconds.
+c. **Share video limits:** try ~300 MB, ~700 MB and ~1 GB videos and report what happens, so the 500 MB guess can be set from real results.
+d. **Save to phone** on a waiting recording, check Photos.
+e. Photo, PDF, dictated note. Airplane-mode-before-picking-a-file (expect "No signal — … Nothing is lost").
+f. If a stall persists: Vercel → project → **Logs**, filter `/api/uploads/chunk`, send the status codes and durations around the stall.
+
+**Then:** home-screen icon (Nick has an idea — discuss), Android test by a tester (same script), merge to `main` (expect small notes-file conflicts; Claude merges, Nick pushes `main`), confirm the production deployment is Ready on the new commit, heads-up message to testers, testers add the normal address to their home screens.
+
+**Parked for later (don't build yet):** rename "Speaker A/B" to real names; Phase II clip ideas; wider file-size column (64-bit) after the merge; long-form (webhook transcription, faster storage); sports note template.
 
 ## Status as of 2026-09-25 (read this first when resuming)
 
@@ -46,7 +55,7 @@ Michael Smith (reporter; uses audio recordings only, to pull quotes into stories
 3. **Blank line between speakers.** Turns are only 8 px apart today (`gap-2` in `src/components/transcript-view.tsx`); a clear gap between turns is a one-line change.
 4. **Rename "Speaker A/B" to real names.** Reasonable and common. Needs a small stored mapping per recording (an additive nullable column, safe for the live site) and showing the names in the transcript, in the exported text, and in the quote list. Medium-sized; worth doing, not before the merge.
 5. **"Something I say gets mixed into what Speaker B says" when he makes a quick comment while they talk.** Yes — the same limitation as item 2: a short interjection that overlaps or follows closely gets absorbed into the other person's turn. Also affects quote attribution, because the quote-flagging step reads the "Speaker A/B" labels (`src/lib/ai/quotes.ts`), so a reporter's remark could be flagged as a quote from the interviewee. Worth telling testers to treat speaker labels as a first draft.
-6. **"Keep track of stats — scorecard for baseball/softball, stat sheet for football."** A different product (sports scorekeeping apps exist). One tester's wish; **recommend not building**, and noting it as a signal that sports reporters want stats near their story. A possible cheap version later is a note template, not a stat engine.
+6. **"Keep track of stats — scorecard for baseball/softball, stat sheet for football."** A different product (sports scorekeeping apps exist). One tester's wish; **recommend not building a stat engine.** Nick's take (2026-10-12): a sports-reporter tool is what he originally had in mind before this app took shape, so the instinct is a good one — and the **Notes feature is the workaround**: jot plays, stats and moments as notes in the same project as the post-game interviews, so everything for a story lives together. A cheap enhancement later, only if testers ask: a sports note template (scoring plays, key stats), not a stat engine.
 
 ### Force-quit resume froze at 52% (2026-10-12) — silent requests had no deadline
 
