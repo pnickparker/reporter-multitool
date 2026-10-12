@@ -124,6 +124,21 @@ export async function initUpload(
   }
 }
 
+/** The database column holds a 32-bit integer (about 2.1 GB at most). */
+const MAX_STORABLE_FILE_SIZE = 2_147_483_647;
+
+/**
+ * A file's size in a form the database can store. Files past ~2.1 GB (a long
+ * video easily is) used to overflow the column and make the final "save the
+ * finished upload" step fail after the whole file had already uploaded, so
+ * those are recorded as unknown (null) until the column is widened to 64-bit.
+ * Nothing reads the stored size back today; the processing-time estimate uses
+ * the real size straight from Drive.
+ */
+function storableFileSize(bytes: number | null): number | null {
+  return bytes !== null && bytes <= MAX_STORABLE_FILE_SIZE ? bytes : null;
+}
+
 /**
  * Called once the browser has finished uploading the file straight to Drive.
  *
@@ -155,7 +170,7 @@ export async function finalizeUpload(
   if (asset.type === "DOCUMENT") {
     return prisma.asset.update({
       where: { id: assetId },
-      data: { sourceFile: driveFileId, fileSizeBytes: driveStats.fileSizeBytes, status: "READY" },
+      data: { sourceFile: driveFileId, fileSizeBytes: storableFileSize(driveStats.fileSizeBytes), status: "READY" },
     });
   }
 
@@ -167,7 +182,7 @@ export async function finalizeUpload(
       data: {
         sourceFile: driveFileId,
         duration: stats.durationSeconds,
-        fileSizeBytes: stats.fileSizeBytes,
+        fileSizeBytes: storableFileSize(stats.fileSizeBytes),
         status: "ERROR",
         errorMessage: OVER_LIMIT_MESSAGE,
       },
@@ -179,7 +194,7 @@ export async function finalizeUpload(
     data: {
       sourceFile: driveFileId,
       duration: stats.durationSeconds,
-      fileSizeBytes: stats.fileSizeBytes,
+      fileSizeBytes: storableFileSize(stats.fileSizeBytes),
       status: "TRANSCRIBING",
     },
   });
