@@ -116,5 +116,7 @@ Nick wants the app to handle podcast-length interviews (40+ minutes and up). He'
 
 **The rule that frames it (Nick):** capture can never be refused or lost; processing can wait. Reporters routinely plan a five-minute interview and end up with an hour, and "leave the interview and realize you used the wrong app" is the failure that ends trust. A saved-but-not-yet-transcribed recording is acceptable (not ideal); a recording the app wouldn't take, or lost, is not.
 
+**Early-version approach (Nick, 2026-10-12):** a clear length limit like Adobe Podcast's (about 30 minutes, longer files must be split) is acceptable for now, because nobody knows yet how many other users want long-form. Evidence so far: no tester recording is anywhere near that — the largest tester files are 7–33 MB and a minute or two long; every large file in the system is one of Nick's own tests. So: don't build long-form engineering until real demand shows up; set the limit from measurement (see V1_SCOPE.md).
+
 **Honest status:** not available yet. Today a long video uploads safely but isn't auto-processed (the original is kept). The technical path (webhook-based transcription, faster storage, audio-only options, per-tier limits) is laid out in V1_SCOPE.md, "Goal: long-form recordings." Don't promise long-form to anyone until that work and the cost research are done.
 
