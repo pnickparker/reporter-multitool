@@ -59,3 +59,22 @@ export function exceedsProcessingLimit(input: ProcessingEstimateInput): boolean 
 if (MAX_ESTIMATED_PROCESSING_SECONDS >= VERCEL_HARD_CEILING_SECONDS) {
   throw new Error("MAX_ESTIMATED_PROCESSING_SECONDS must stay below the Vercel hard ceiling for safety margin");
 }
+
+/**
+ * What a recording that is too long to transcribe automatically says. The
+ * recording itself is fine — it's saved in full — so this must read as "saved,
+ * transcript not made yet", never as a failure: nothing may make a reporter
+ * feel their recording was refused or lost.
+ */
+export const OVER_LIMIT_MESSAGE =
+  "Saved. This recording is too long to transcribe automatically right now, so there is no transcript or best moments yet. Your original is safe — tap Share on this item to get it out.";
+
+/** The wording used before the message above (kept so older rows are still recognised). */
+const LEGACY_OVER_LIMIT_PREFIX = "This recording is too long/large";
+
+/** True for a recording that was saved fine but skipped for length — as opposed to one that genuinely failed. */
+export function isHeldForLength(asset: { status: string; errorMessage: string | null }): boolean {
+  if (asset.status !== "ERROR" || !asset.errorMessage) return false;
+  return asset.errorMessage === OVER_LIMIT_MESSAGE || asset.errorMessage.startsWith(LEGACY_OVER_LIMIT_PREFIX);
+}
+

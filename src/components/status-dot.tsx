@@ -1,9 +1,10 @@
-export type DotState = "ready" | "working" | "error" | "idle";
+export type DotState = "ready" | "working" | "error" | "held" | "idle";
 
 const COLORS: Record<DotState, string> = {
   ready: "bg-mint",
   working: "bg-violet-soft animate-pulse",
   error: "bg-danger",
+  held: "bg-butter",
   idle: "bg-line",
 };
 
@@ -11,6 +12,7 @@ const LABELS: Record<DotState, string> = {
   ready: "Ready",
   working: "Working",
   error: "Needs attention",
+  held: "Saved, not transcribed",
   idle: "Empty",
 };
 

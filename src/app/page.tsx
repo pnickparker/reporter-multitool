@@ -5,13 +5,16 @@ import { TagBadges } from "@/components/tag-badges";
 import { ProjectRowHeader } from "@/components/project-row-header";
 import { CaptureActions } from "@/components/capture-actions";
 import type { DotState } from "@/components/status-dot";
+import { isHeldForLength } from "@/lib/assets/processing-limits";
 
 const WORKING_STATUSES = ["TRANSCRIBING", "GENERATING"];
 
-function projectDotState(statuses: string[]): DotState {
-  if (statuses.some((s) => WORKING_STATUSES.includes(s))) return "working";
-  if (statuses.includes("ERROR")) return "error";
-  if (statuses.includes("READY")) return "ready";
+function projectDotState(assets: { status: string; errorMessage: string | null }[]): DotState {
+  if (assets.some((a) => WORKING_STATUSES.includes(a.status))) return "working";
+  // A recording saved but skipped for length isn't a failure — it gets its own calmer dot.
+  if (assets.some((a) => a.status === "ERROR" && !isHeldForLength(a))) return "error";
+  if (assets.some(isHeldForLength)) return "held";
+  if (assets.some((a) => a.status === "READY")) return "ready";
   return "idle";
 }
 
@@ -62,7 +65,7 @@ export default async function Home({
       where: { ownerId: user.id, ...(tag ? { tags: { has: tag } } : {}) },
       include: {
         _count: { select: { assets: true } },
-        assets: { select: { status: true } },
+        assets: { select: { status: true, errorMessage: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -126,7 +129,7 @@ export default async function Home({
               projectId={project.id}
               name={project.name}
               assetCount={project._count.assets}
-              state={projectDotState(project.assets.map((a) => a.status))}
+              state={projectDotState(project.assets)}
             />
             {project.tags.length > 0 && (
               <div className="pb-3 pl-[22px]">

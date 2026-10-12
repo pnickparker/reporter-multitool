@@ -15,6 +15,7 @@ import { DeleteProjectButton } from "@/components/delete-project-button";
 import { EditableProjectTitle } from "@/components/editable-project-title";
 import { StatusDot, type DotState } from "@/components/status-dot";
 import { MediaPlayer, MediaScope } from "@/components/media-scope";
+import { isHeldForLength } from "@/lib/assets/processing-limits";
 
 const STATUS_DOT: Record<string, DotState> = {
   READY: "ready",
@@ -116,14 +117,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         {project.assets.map((asset) => {
           const playable = (asset.type === "AUDIO" || asset.type === "VIDEO") && !!asset.sourceFile;
           const isPhoto = asset.type === "DOCUMENT" && !!asset.mimeType?.startsWith("image/") && !!asset.sourceFile;
+          // Saved in full but skipped for length: shown as saved, never as a failure.
+          const held = isHeldForLength(asset);
           return (
             <li key={asset.id} className="rounded-3xl bg-surface p-4 text-sm">
               <MediaScope hasMedia={playable}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <StatusDot state={STATUS_DOT[asset.status] ?? "idle"} />
+                    <StatusDot state={held ? "held" : (STATUS_DOT[asset.status] ?? "idle")} />
                     <span className="font-bold">
-                      {isPhoto ? "Photo" : (TYPE_LABEL[asset.type] ?? asset.type)} · {STATUS_LABEL[asset.status] ?? asset.status}
+                      {isPhoto ? "Photo" : (TYPE_LABEL[asset.type] ?? asset.type)} ·{" "}
+                      {held ? "Saved, not transcribed" : (STATUS_LABEL[asset.status] ?? asset.status)}
                     </span>
                   </div>
                   <div className="flex items-center">
@@ -159,7 +163,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   <MediaPlayer assetId={asset.id} kind={asset.type} />
                 )}
                 {asset.status === "ERROR" && asset.errorMessage && (
-                  <p className="mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 text-danger">
+                  <p className={`mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 ${held ? "text-butter" : "text-danger"}`}>
                     {asset.errorMessage}
                   </p>
                 )}

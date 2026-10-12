@@ -5,7 +5,7 @@ import { getDriveClientForUser } from "@/lib/google/drive-client";
 import { GoogleDriveStorage, createResumableUploadSession, getFileStats } from "@/lib/storage/google-drive";
 import { processTranscription, downloadAndProcessTranscription } from "@/lib/transcription/process";
 import { errorMessage } from "@/lib/error-message";
-import { estimateProcessingSeconds, exceedsProcessingLimit } from "@/lib/assets/processing-limits";
+import { OVER_LIMIT_MESSAGE, exceedsProcessingLimit } from "@/lib/assets/processing-limits";
 
 export function defaultProjectName(): string {
   const date = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -162,7 +162,6 @@ export async function finalizeUpload(
   const stats = { ...driveStats, durationSeconds: driveStats.durationSeconds ?? clientDurationSeconds };
 
   if (exceedsProcessingLimit(stats)) {
-    const estimatedSeconds = Math.round(estimateProcessingSeconds(stats));
     return prisma.asset.update({
       where: { id: assetId },
       data: {
@@ -170,7 +169,7 @@ export async function finalizeUpload(
         duration: stats.durationSeconds,
         fileSizeBytes: stats.fileSizeBytes,
         status: "ERROR",
-        errorMessage: `This recording is too long/large to process automatically right now (estimated ~${estimatedSeconds}s to process). The file is already safely saved — tap Share to grab the original, or trim it and try again.`,
+        errorMessage: OVER_LIMIT_MESSAGE,
       },
     });
   }
