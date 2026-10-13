@@ -10,7 +10,7 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 **New work goes on a new branch again** (testers are on `main` now), then merge when tested. Previews still need a Vercel login, so testers can't open them; test on Nick's phone via the stable branch address, then merge.
 
 **Next, in order:**
-1. **Nick logs in on the live address** (phone): new look, hint under Upload, a short test upload, old projects still there; add to home screen if desired (install first, then use).
+1. **DONE 2026-10-13 — Nick's check on the live address passed** (new look, hint under Upload, a short audio upload transcribed, speaker naming and text export worked). Before sending the link he is tidying his own test projects (the account is shared, so testers see every project); Claude does not delete his data.
 2. **Send testers the heads-up** (the list below is the content): the new look, safe uploads, progress, speaker naming and re-run, size-and-length limits; ask them to try a long audio upload and the two speaker tools and report back, with the exact words on screen if anything fails.
 3. **Watch for tester feedback** (Michael said he'd send written recommendations); the Android tester also answers: what does the big circle open, which voice recorder app do they use, do its files upload.
 4. **Known not-yet-done:** a wider (64-bit) file-size column; quote start–end times; tap a single transcript turn to change who said it; background transcription for recordings beyond the limit; accounts and data separation (the real gate to paying users); pricing and cost-per-interview research; name and trademark clearance. See "Parked" in earlier sections of these notes.
