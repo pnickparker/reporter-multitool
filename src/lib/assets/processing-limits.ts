@@ -64,6 +64,17 @@ export function estimateProcessingSeconds({ fileSizeBytes, durationSeconds }: Pr
   return FIXED_OVERHEAD_SECONDS + movingSeconds + audioSeconds * ASSUMED_SECONDS_PER_AUDIO_SECOND;
 }
 
+/**
+ * What processing usually takes, from the measurements above WITHOUT the safety padding — for telling a reporter
+ * "this usually takes about N minutes", not for deciding what to allow. Null when nothing is known about the recording.
+ */
+export function typicalProcessingSeconds({ fileSizeBytes, durationSeconds }: ProcessingEstimateInput): number | null {
+  if (fileSizeBytes === null && durationSeconds === null) return null;
+  const moving = fileSizeBytes ? fileSizeBytes / 49_000_000 : 0; // measured ~49 MB/s
+  const transcribing = durationSeconds ? durationSeconds / 50 : 0; // measured ~50x real time
+  return 45 + moving + transcribing; // ~43 s of AI steps plus hand-offs
+}
+
 export function exceedsProcessingLimit(input: ProcessingEstimateInput): boolean {
   return estimateProcessingSeconds(input) > MAX_ESTIMATED_PROCESSING_SECONDS;
 }

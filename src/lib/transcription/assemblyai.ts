@@ -21,8 +21,16 @@ function requireEnv(name: string): string {
 const SHORT_RECORDING_SECONDS = 240;
 const EXPECTED_SPEAKERS_FOR_SHORT_RECORDINGS = 2;
 
-/** `speakers_expected` for a recording of this length, or nothing to let the labeler decide. A recording of unknown length is treated as short (the usual case: a quick interview). */
-export function speakerHintFor(durationSeconds: number | null): { speakers_expected?: number } {
+/**
+ * `speakers_expected` for a recording: an explicit choice by the reporter wins ("auto" lets the labeler
+ * decide, a number tells it how many people to expect); otherwise it depends on the recording's length. A
+ * recording of unknown length is treated as short (the usual case: a quick interview).
+ */
+export type SpeakerChoice = number | "auto";
+
+export function speakerHintFor(durationSeconds: number | null, choice?: SpeakerChoice): { speakers_expected?: number } {
+  if (choice === "auto") return {};
+  if (typeof choice === "number") return { speakers_expected: choice };
   const isShort = durationSeconds === null || durationSeconds <= SHORT_RECORDING_SECONDS;
   return isShort ? { speakers_expected: EXPECTED_SPEAKERS_FOR_SHORT_RECORDINGS } : {};
 }
@@ -37,13 +45,13 @@ export interface TranscriptionResult {
  * request) — no need to re-download from Drive. Speaker labels are on so
  * interview transcripts show who said what.
  */
-export async function transcribeBuffer(buffer: Buffer, durationSeconds: number | null = null): Promise<TranscriptionResult> {
+export async function transcribeBuffer(buffer: Buffer, durationSeconds: number | null = null, choice?: SpeakerChoice): Promise<TranscriptionResult> {
   const client = new AssemblyAI({ apiKey: requireEnv("ASSEMBLYAI_API_KEY") });
 
   const transcript = await client.transcripts.transcribe({
     audio: buffer,
     speaker_labels: true,
-    ...speakerHintFor(durationSeconds),
+    ...speakerHintFor(durationSeconds, choice),
   });
 
   if (transcript.status === "error") {
@@ -62,7 +70,11 @@ export async function transcribeBuffer(buffer: Buffer, durationSeconds: number |
  * file ever being held in the server's memory (a 560 MB video that was
  * downloaded in full first ran out of time and was killed mid-way).
  */
-export async function transcribeStream(stream: NodeJS.ReadableStream, durationSeconds: number | null = null): Promise<TranscriptionResult> {
+export async function transcribeStream(
+  stream: NodeJS.ReadableStream,
+  durationSeconds: number | null = null,
+  choice?: SpeakerChoice,
+): Promise<TranscriptionResult> {
   const apiKey = requireEnv("ASSEMBLYAI_API_KEY");
   const client = new AssemblyAI({ apiKey });
 
@@ -74,7 +86,7 @@ export async function transcribeStream(stream: NodeJS.ReadableStream, durationSe
   const transcript = await client.transcripts.transcribe({
     audio: uploadUrl,
     speaker_labels: true,
-    ...speakerHintFor(durationSeconds),
+    ...speakerHintFor(durationSeconds, choice),
   });
 
   if (transcript.status === "error") {

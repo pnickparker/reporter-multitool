@@ -15,7 +15,14 @@ import { DeleteProjectButton } from "@/components/delete-project-button";
 import { EditableProjectTitle } from "@/components/editable-project-title";
 import { StatusDot, type DotState } from "@/components/status-dot";
 import { MediaPlayer, MediaScope } from "@/components/media-scope";
-import { PROCESSING_TIMEOUT_MESSAGE, isSavedNotProcessed, isStuckProcessing } from "@/lib/assets/processing-limits";
+import {
+  PROCESSING_TIMEOUT_MESSAGE,
+  isSavedNotProcessed,
+  isStuckProcessing,
+  typicalProcessingSeconds,
+} from "@/lib/assets/processing-limits";
+import { ProcessingProgress } from "@/components/processing-progress";
+import { RerunTranscript } from "@/components/rerun-transcript";
 import { TranscribeNowButton } from "@/components/transcribe-now-button";
 import { RemoveUnfinishedUpload } from "@/components/remove-unfinished-upload";
 
@@ -136,6 +143,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           const held = heldRaw || stuck;
           const stale = isStaleUpload(asset);
           const canTranscribe = (asset.type === "AUDIO" || asset.type === "VIDEO") && !!asset.sourceFile;
+          const typicalSeconds = typicalProcessingSeconds({ fileSizeBytes: asset.fileSizeBytes, durationSeconds: asset.duration });
+          const processing = (asset.status === "TRANSCRIBING" || asset.status === "GENERATING") && !stuck;
           return (
             <li key={asset.id} className="rounded-3xl bg-surface p-4 text-sm">
               <MediaScope hasMedia={playable}>
@@ -186,6 +195,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     <RemoveUnfinishedUpload assetId={asset.id} projectRemainsWithOthers={project.assets.length > 1} />
                   </div>
                 )}
+                {processing && (
+                  <ProcessingProgress
+                    status={asset.status as "TRANSCRIBING" | "GENERATING"}
+                    startedAt={(asset.processingStartedAt ?? asset.uploadedAt).toISOString()}
+                    typicalSeconds={typicalSeconds}
+                  />
+                )}
                 {stuck && (
                   <p className="mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 text-butter">
                     {PROCESSING_TIMEOUT_MESSAGE}
@@ -197,11 +213,20 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     {asset.errorMessage}
                   </p>
                 )}
+                {asset.status === "READY" && asset.errorMessage && (
+                  <p className="mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 text-butter">{asset.errorMessage}</p>
+                )}
                 {asset.transcript && (
                   <TranscriptView
                     text={asset.transcript.text}
                     segments={asset.transcript.segments}
                     collapsible={asset.type === "AUDIO" || asset.type === "VIDEO"}
+                  />
+                )}
+                {canTranscribe && asset.status === "READY" && asset.transcript && asset.transcript.text.trim().length > 0 && (
+                  <RerunTranscript
+                    assetId={asset.id}
+                    typicalMinutes={typicalSeconds === null ? null : Math.max(1, Math.ceil(typicalSeconds / 60))}
                   />
                 )}
                 <QuotesView quotes={asset.flaggedQuotes} />

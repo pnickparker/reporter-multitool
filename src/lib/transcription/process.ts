@@ -1,18 +1,43 @@
 import type { GoogleDriveConnection } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { transcribeBuffer, transcribeStream } from "./assemblyai";
+import { transcribeBuffer, transcribeStream, type SpeakerChoice } from "./assemblyai";
 import { processAiPipeline } from "@/lib/ai/pipeline";
 import { errorMessage } from "@/lib/error-message";
 import { getDriveClientForUser } from "@/lib/google/drive-client";
 import { openFileStream } from "@/lib/storage/google-drive";
 import { PROCESSING_TIMEOUT_MESSAGE } from "@/lib/assets/processing-limits";
 
+export interface ProcessOptions {
+  /** How many speakers to expect: a number, or "auto" to let the service decide. Leave out for the length-based default. */
+  speakers?: SpeakerChoice;
+  /**
+   * True for a re-run of a recording that already has a finished transcript, best moments and posts. Those are
+   * kept untouched until the new transcript has actually arrived; if the re-run fails before that, they are put
+   * back as the current results (with a note). A re-run must never leave someone with less than they started with.
+   */
+  keepEarlierResults?: boolean;
+}
+
+/** Shown on a recording whose re-run couldn't finish: the earlier results are still there and unchanged. */
+export const RERUN_KEPT_EARLIER_NOTE =
+  "The re-run didn't finish, so your earlier transcript, best moments and post drafts are unchanged. You can try again.";
+
+/** Progress shared with the deadline timer: has the new transcript replaced the earlier results yet? */
+interface RunState {
+  replaced: boolean;
+}
+
 /**
  * Runs after the upload response has already been sent (see `after()` in the
  * assets route) — transcription can take longer than an HTTP request should.
  */
 export async function processTranscription(assetId: string, buffer: Buffer) {
-  return runPipeline(assetId, async () => transcribeBuffer(buffer, await recordingLength(assetId)));
+  return runPipeline(
+    assetId,
+    async () => transcribeBuffer(buffer, await recordingLength(assetId)),
+    {},
+    { replaced: false },
+  );
 }
 
 /** The recording's length in seconds as recorded at upload, or null if unknown — decides whether the speaker hint is used. */
@@ -21,15 +46,36 @@ async function recordingLength(assetId: string): Promise<number | null> {
   return asset?.duration ?? null;
 }
 
-async function runPipeline(assetId: string, transcribe: () => Promise<{ text: string; segments: unknown }>) {
+/** Records that a run didn't finish: an ordinary failure, or — for a re-run that never got to replace anything — back to the earlier results. */
+async function recordFailure(assetId: string, message: string, options: ProcessOptions, state: RunState) {
+  const restore = options.keepEarlierResults && !state.replaced;
+  await prisma.asset.update({
+    where: { id: assetId },
+    data: restore ? { status: "READY", errorMessage: RERUN_KEPT_EARLIER_NOTE } : { status: "ERROR", errorMessage: message },
+  });
+}
+
+async function runPipeline(
+  assetId: string,
+  transcribe: () => Promise<{ text: string; segments: unknown }>,
+  options: ProcessOptions,
+  state: RunState,
+) {
   try {
     const { text, segments } = await transcribe();
 
-    await prisma.transcript.upsert({
-      where: { assetId },
-      update: { text, segments: segments as object },
-      create: { assetId, text, segments: segments as object },
-    });
+    // The new transcript has arrived: only now are the earlier best moments and posts cleared away (they'd be
+    // stale or duplicated), in the same step that stores the new transcript.
+    await prisma.$transaction([
+      prisma.generatedSocialPost.deleteMany({ where: { assetId } }),
+      prisma.flaggedQuote.deleteMany({ where: { assetId } }),
+      prisma.transcript.upsert({
+        where: { assetId },
+        update: { text, segments: segments as object },
+        create: { assetId, text, segments: segments as object },
+      }),
+    ]);
+    state.replaced = true;
 
     // Nothing was said (or nothing could be recognized): there is nothing to find quotes in, so skip the AI steps.
     if (text.trim().length === 0) {
@@ -37,14 +83,11 @@ async function runPipeline(assetId: string, transcribe: () => Promise<{ text: st
       return;
     }
 
-    await prisma.asset.update({ where: { id: assetId }, data: { status: "GENERATING" } });
+    await prisma.asset.update({ where: { id: assetId }, data: { status: "GENERATING", errorMessage: null } });
     await processAiPipeline(assetId);
   } catch (err) {
     console.error(`Transcription failed for asset ${assetId}:`, err);
-    await prisma.asset.update({
-      where: { id: assetId },
-      data: { status: "ERROR", errorMessage: errorMessage(err) },
-    });
+    await recordFailure(assetId, errorMessage(err), options, state);
   }
 }
 
@@ -69,29 +112,37 @@ export async function downloadAndProcessTranscription(
   assetId: string,
   driveFileId: string,
   user: { id: string; driveConnection: GoogleDriveConnection },
+  options: ProcessOptions = {},
 ) {
+  const state: RunState = { replaced: false };
+
   const deadline = setTimeout(() => {
+    const restore = options.keepEarlierResults && !state.replaced;
     prisma.asset
       .updateMany({
         where: { id: assetId, status: { in: ["TRANSCRIBING", "GENERATING"] } },
-        data: { status: "ERROR", errorMessage: PROCESSING_TIMEOUT_MESSAGE },
+        data: restore
+          ? { status: "READY", errorMessage: RERUN_KEPT_EARLIER_NOTE }
+          : { status: "ERROR", errorMessage: PROCESSING_TIMEOUT_MESSAGE },
       })
       .catch((err) => console.error(`Couldn't record the processing timeout for asset ${assetId}:`, err));
   }, SELF_DEADLINE_MS);
 
   try {
     const auth = getDriveClientForUser(user.id, user.driveConnection);
-    await runPipeline(assetId, async () => {
-      const durationSeconds = await recordingLength(assetId);
-      const upstream = await openFileStream(auth, driveFileId);
-      return transcribeStream(upstream.body, durationSeconds);
-    });
+    await runPipeline(
+      assetId,
+      async () => {
+        const durationSeconds = await recordingLength(assetId);
+        const upstream = await openFileStream(auth, driveFileId);
+        return transcribeStream(upstream.body, durationSeconds, options.speakers);
+      },
+      options,
+      state,
+    );
   } catch (err) {
     console.error(`Failed to process asset ${assetId} from Drive:`, err);
-    await prisma.asset.update({
-      where: { id: assetId },
-      data: { status: "ERROR", errorMessage: errorMessage(err) },
-    });
+    await recordFailure(assetId, errorMessage(err), options, state);
   } finally {
     clearTimeout(deadline);
   }
