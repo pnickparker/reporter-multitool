@@ -9,14 +9,23 @@ function requireEnv(name: string): string {
 }
 
 /**
- * How many speakers the labeler is told to expect. News recordings are mostly
- * two-person interviews, and without this hint the labeler often merged the two
- * voices into one block or invented a third speaker (checked on 11 real
- * recordings: every multi-person one improved). The cost: a recording of one
- * person talking can occasionally be cut in two. Reporters should still check
- * the labels, as with any transcription tool.
+ * Whether to tell the speaker labeler how many people to expect. Checked on real
+ * recordings (2026-10-12/13): on SHORT clips (a minute or two) the labeler often
+ * merged two voices into one block or invented a third, and telling it to expect
+ * two fixed that every time; on LONG recordings it has enough audio to work the
+ * voices out itself — a 35-minute interview came out identical either way, and a
+ * 101-minute podcast with 6-7 voices was split into 8 speakers by itself but
+ * crushed into 2 by the hint. So the hint is used only for short recordings.
+ * (Reporters should still check the labels, as with any transcription tool.)
  */
-const EXPECTED_SPEAKERS = 2;
+const SHORT_RECORDING_SECONDS = 240;
+const EXPECTED_SPEAKERS_FOR_SHORT_RECORDINGS = 2;
+
+/** `speakers_expected` for a recording of this length, or nothing to let the labeler decide. A recording of unknown length is treated as short (the usual case: a quick interview). */
+export function speakerHintFor(durationSeconds: number | null): { speakers_expected?: number } {
+  const isShort = durationSeconds === null || durationSeconds <= SHORT_RECORDING_SECONDS;
+  return isShort ? { speakers_expected: EXPECTED_SPEAKERS_FOR_SHORT_RECORDINGS } : {};
+}
 
 export interface TranscriptionResult {
   text: string;
@@ -28,13 +37,13 @@ export interface TranscriptionResult {
  * request) — no need to re-download from Drive. Speaker labels are on so
  * interview transcripts show who said what.
  */
-export async function transcribeBuffer(buffer: Buffer): Promise<TranscriptionResult> {
+export async function transcribeBuffer(buffer: Buffer, durationSeconds: number | null = null): Promise<TranscriptionResult> {
   const client = new AssemblyAI({ apiKey: requireEnv("ASSEMBLYAI_API_KEY") });
 
   const transcript = await client.transcripts.transcribe({
     audio: buffer,
     speaker_labels: true,
-    speakers_expected: EXPECTED_SPEAKERS,
+    ...speakerHintFor(durationSeconds),
   });
 
   if (transcript.status === "error") {
@@ -53,7 +62,7 @@ export async function transcribeBuffer(buffer: Buffer): Promise<TranscriptionRes
  * file ever being held in the server's memory (a 560 MB video that was
  * downloaded in full first ran out of time and was killed mid-way).
  */
-export async function transcribeStream(stream: NodeJS.ReadableStream): Promise<TranscriptionResult> {
+export async function transcribeStream(stream: NodeJS.ReadableStream, durationSeconds: number | null = null): Promise<TranscriptionResult> {
   const apiKey = requireEnv("ASSEMBLYAI_API_KEY");
   const client = new AssemblyAI({ apiKey });
 
@@ -65,7 +74,7 @@ export async function transcribeStream(stream: NodeJS.ReadableStream): Promise<T
   const transcript = await client.transcripts.transcribe({
     audio: uploadUrl,
     speaker_labels: true,
-    speakers_expected: EXPECTED_SPEAKERS,
+    ...speakerHintFor(durationSeconds),
   });
 
   if (transcript.status === "error") {

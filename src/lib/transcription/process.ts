@@ -12,7 +12,13 @@ import { PROCESSING_TIMEOUT_MESSAGE } from "@/lib/assets/processing-limits";
  * assets route) — transcription can take longer than an HTTP request should.
  */
 export async function processTranscription(assetId: string, buffer: Buffer) {
-  return runPipeline(assetId, () => transcribeBuffer(buffer));
+  return runPipeline(assetId, async () => transcribeBuffer(buffer, await recordingLength(assetId)));
+}
+
+/** The recording's length in seconds as recorded at upload, or null if unknown — decides whether the speaker hint is used. */
+async function recordingLength(assetId: string): Promise<number | null> {
+  const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { duration: true } });
+  return asset?.duration ?? null;
 }
 
 async function runPipeline(assetId: string, transcribe: () => Promise<{ text: string; segments: unknown }>) {
@@ -76,8 +82,9 @@ export async function downloadAndProcessTranscription(
   try {
     const auth = getDriveClientForUser(user.id, user.driveConnection);
     await runPipeline(assetId, async () => {
+      const durationSeconds = await recordingLength(assetId);
       const upstream = await openFileStream(auth, driveFileId);
-      return transcribeStream(upstream.body);
+      return transcribeStream(upstream.body, durationSeconds);
     });
   } catch (err) {
     console.error(`Failed to process asset ${assetId} from Drive:`, err);
