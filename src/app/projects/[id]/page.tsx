@@ -221,6 +221,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     text={asset.transcript.text}
                     segments={asset.transcript.segments}
                     collapsible={asset.type === "AUDIO" || asset.type === "VIDEO"}
+                    assetId={asset.type === "AUDIO" || asset.type === "VIDEO" ? asset.id : undefined}
+                    speakerNames={asset.speakerNames}
                   />
                 )}
                 {canTranscribe && asset.status === "READY" && asset.transcript && asset.transcript.text.trim().length > 0 && (

@@ -1,4 +1,5 @@
-import { asUtterances } from "@/lib/transcript-format";
+import { asUtterances, speakerLabel, speakerNamesOf, speakersIn } from "@/lib/transcript-format";
+import { SpeakerNames } from "@/components/speaker-names";
 
 /**
  * Shows speaker-labeled turns when diarization data is available, falling
@@ -10,12 +11,20 @@ export function TranscriptView({
   text,
   segments,
   collapsible = false,
+  assetId,
+  speakerNames,
 }: {
   text: string;
   segments: unknown;
   collapsible?: boolean;
+  /** When given, speakers can be named from here. */
+  assetId?: string;
+  /** The names saved for this recording's speakers (raw stored value). */
+  speakerNames?: unknown;
 }) {
   const utterances = asUtterances(segments);
+  const names = speakerNamesOf(speakerNames);
+  const speakers = speakersIn(utterances);
 
   // A recording can have sound but no recognizable speech (music, a crowd, a performance). Say so, rather than showing a blank panel.
   if (text.trim().length === 0 && utterances.length === 0) {
@@ -34,14 +43,21 @@ export function TranscriptView({
       <div className="flex flex-col gap-4">
         {utterances.map((u, i) => (
           <p key={i}>
-            <span className="font-semibold text-violet-soft">Speaker {u.speaker ?? "?"}:</span> {u.text}
+            <span className="font-semibold text-violet-soft">{speakerLabel(u.speaker, names)}:</span> {u.text}
           </p>
         ))}
       </div>
     );
 
+  const naming = assetId && speakers.length > 0 ? <SpeakerNames assetId={assetId} speakers={speakers} names={names} /> : null;
+
   if (!collapsible) {
-    return <div className="mt-3 leading-relaxed text-ink/90">{body}</div>;
+    return (
+      <div className="mt-3 leading-relaxed text-ink/90">
+        {naming}
+        <div className={naming ? "mt-3" : ""}>{body}</div>
+      </div>
+    );
   }
 
   return (
@@ -50,7 +66,10 @@ export function TranscriptView({
         <span className="group-open:hidden">Show full transcript</span>
         <span className="hidden group-open:inline">Hide transcript</span>
       </summary>
-      <div className="mt-1 leading-relaxed text-ink/90">{body}</div>
+      <div className="mt-1 leading-relaxed text-ink/90">
+        {naming}
+        <div className={naming ? "mt-3" : ""}>{body}</div>
+      </div>
     </details>
   );
 }

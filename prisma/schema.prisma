@@ -74,6 +74,8 @@ model Asset {
   uploadedAt    DateTime    @default(now())
   /// When processing (transcription + AI steps) last started — lets the app tell "still working" from "cut off by the server's time limit." Null on older rows; uploadedAt stands in.
   processingStartedAt DateTime?
+  /// Names the reporter gave the transcript's speakers, e.g. {"A": "Coach Smith"} — shown in place of "Speaker A". Cleared when the transcript is re-run (the letters may then mean different people). Null when none.
+  speakerNames Json?
   status        AssetStatus @default(UPLOADING)
   errorMessage  String?
 

@@ -1,4 +1,4 @@
-import type { GoogleDriveConnection } from "@prisma/client";
+import { Prisma, type GoogleDriveConnection } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { transcribeBuffer, transcribeStream, type SpeakerChoice } from "./assemblyai";
 import { processAiPipeline } from "@/lib/ai/pipeline";
@@ -74,6 +74,8 @@ async function runPipeline(
         update: { text, segments: segments as object },
         create: { assetId, text, segments: segments as object },
       }),
+      // The letters in a new transcript may mean different people, so names given to the old ones no longer apply.
+      prisma.asset.update({ where: { id: assetId }, data: { speakerNames: Prisma.DbNull } }),
     ]);
     state.replaced = true;
 
