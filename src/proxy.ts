@@ -18,7 +18,9 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
+  // Left open on purpose: the sign-in page, and the app icon plus install manifest. A phone fetches those without
+  // the passphrase cookie, so gating them would quietly break "Add to Home Screen" (a generic icon, no full-screen).
   matcher: [
-    "/((?!login|api/login|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|api/login|_next/static|_next/image|favicon.ico|manifest.webmanifest|icon|apple-icon).*)",
   ],
 };

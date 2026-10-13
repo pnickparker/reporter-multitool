@@ -3,6 +3,10 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 
 const DRIVE_UPLOAD_PREFIX = "https://www.googleapis.com/upload/drive/v3/files";
 
+/** Give Drive this long for one piece; past it the browser is told promptly (504) so it can retry, rather than waiting on a request that may never answer. */
+const DRIVE_TIMEOUT_MS = 100_000;
+export const maxDuration = 120;
+
 /**
  * Relays one chunk of a large audio/video file to its Drive resumable
  * upload session. Google's Drive API doesn't allow a browser to PUT
@@ -20,28 +24,41 @@ export async function POST(req: NextRequest) {
   const rangeStart = req.headers.get("x-range-start");
   const rangeEnd = req.headers.get("x-range-end");
   const totalSize = req.headers.get("x-total-size");
+  // A status query sends no bytes: it asks Drive how much of the file it already has, so a retry can resume from there.
+  const isStatusQuery = req.headers.get("x-status-query") === "1";
 
   if (!uploadUrl || !uploadUrl.startsWith(DRIVE_UPLOAD_PREFIX)) {
     return NextResponse.json({ error: "Invalid or missing upload URL" }, { status: 400 });
   }
-  if (!rangeStart || !rangeEnd || !totalSize) {
+  if (!totalSize || (!isStatusQuery && (!rangeStart || !rangeEnd))) {
     return NextResponse.json({ error: "Missing chunk range headers" }, { status: 400 });
   }
 
-  const chunk = Buffer.from(await req.arrayBuffer());
+  const chunk = isStatusQuery ? Buffer.alloc(0) : Buffer.from(await req.arrayBuffer());
 
-  const driveRes = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Range": `bytes ${rangeStart}-${rangeEnd}/${totalSize}`,
-      "Content-Length": String(chunk.length),
-    },
-    body: chunk,
-  });
+  let driveRes: Response;
+  try {
+    driveRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Range": isStatusQuery ? `bytes */${totalSize}` : `bytes ${rangeStart}-${rangeEnd}/${totalSize}`,
+        "Content-Length": String(chunk.length),
+      },
+      body: isStatusQuery ? undefined : chunk,
+      signal: AbortSignal.timeout(DRIVE_TIMEOUT_MS),
+    });
+  } catch (err) {
+    const timedOut = err instanceof Error && err.name === "TimeoutError";
+    return NextResponse.json({ error: timedOut ? "Drive took too long" : "Couldn't reach Drive" }, { status: timedOut ? 504 : 502 });
+  }
 
   const body = await driveRes.text();
-  return new NextResponse(body, {
-    status: driveRes.status,
-    headers: { "Content-Type": driveRes.headers.get("content-type") ?? "application/json" },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": driveRes.headers.get("content-type") ?? "application/json",
+  };
+  // Drive's "bytes received so far" on a 308, which the browser needs in order to resume.
+  const driveRange = driveRes.headers.get("range");
+  if (driveRange) headers["X-Drive-Range"] = driveRange;
+
+  return new NextResponse(body, { status: driveRes.status, headers });
 }

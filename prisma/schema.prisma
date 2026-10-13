@@ -69,7 +69,13 @@ model Asset {
    * Bytes — from Drive's file metadata, captured at finalize time to estimate processing time before attempting transcription. Assumes realistic reporter-clip sizes (well under 2GB); revisit the type if that ever stops holding.
    */
   fileSizeBytes Int?
+  /// The file's MIME type as the browser reported it at upload — lets the page tell a photo (image/*) from a PDF among DOCUMENT assets without changing the AssetType enum, which the live site's older code couldn't read.
+  mimeType      String?
   uploadedAt    DateTime    @default(now())
+  /// When processing (transcription + AI steps) last started — lets the app tell "still working" from "cut off by the server's time limit." Null on older rows; uploadedAt stands in.
+  processingStartedAt DateTime?
+  /// Names the reporter gave the transcript's speakers, e.g. {"A": "Coach Smith"} — shown in place of "Speaker A". Cleared when the transcript is re-run (the letters may then mean different people). Null when none.
+  speakerNames Json?
   status        AssetStatus @default(UPLOADING)
   errorMessage  String?
 

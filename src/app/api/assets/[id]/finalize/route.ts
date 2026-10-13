@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { finalizeMediaUpload } from "@/lib/assets/create-asset";
+import { finalizeUpload } from "@/lib/assets/create-asset";
 
 /**
  * Vercel's default function duration is far too short for the background
@@ -34,6 +34,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       ? Math.round(durationSeconds)
       : null;
 
-  const updated = await finalizeMediaUpload(assetId, driveFileId, user, clientDuration);
+  const updated = await finalizeUpload(assetId, driveFileId, user, clientDuration);
   return NextResponse.json(updated);
 }

@@ -6,7 +6,7 @@ import type {
   Transcript,
   Project,
 } from "@prisma/client";
-import { asUtterances } from "@/lib/transcript-format";
+import { asUtterances, speakerLabel, speakerNamesOf } from "@/lib/transcript-format";
 
 export type AssetForExport = Asset & {
   project: Project;
@@ -29,13 +29,14 @@ function formatTimestamp(seconds: number): string {
   return `${m}:${s}`;
 }
 
-function transcriptSection(heading: string, transcript: Transcript | null): string[] {
+function transcriptSection(heading: string, transcript: Transcript | null, speakerNames: unknown): string[] {
   const lines = [`${heading} Transcript`, ""];
   if (!transcript) return [...lines, "_No transcript yet._", ""];
 
   const utterances = asUtterances(transcript.segments);
+  const names = speakerNamesOf(speakerNames);
   if (utterances.length > 0) {
-    for (const u of utterances) lines.push(`**Speaker ${u.speaker ?? "?"}:** ${u.text}`, "");
+    for (const u of utterances) lines.push(`**${speakerLabel(u.speaker, names)}:** ${u.text}`, "");
   } else {
     lines.push(transcript.text, "");
   }
@@ -81,10 +82,11 @@ function noteSection(heading: string, transcript: Transcript | null): string[] {
 function contentSections(heading: string, type: AssetType, asset: AssetWithContent): string[] {
   if (type === "NOTE") return noteSection(heading, asset.transcript);
   if (type === "DOCUMENT") {
-    return [`Reference document — [open in Drive](https://drive.google.com/file/d/${asset.sourceFile}/view).`, ""];
+    const kind = asset.mimeType?.startsWith("image/") ? "Photo" : "Reference document";
+    return [`${kind} — [open in Drive](https://drive.google.com/file/d/${asset.sourceFile}/view).`, ""];
   }
   return [
-    ...transcriptSection(heading, asset.transcript),
+    ...transcriptSection(heading, asset.transcript, asset.speakerNames),
     ...quotesSection(heading, asset.flaggedQuotes),
     ...postsSection(heading, asset.socialPosts),
   ];

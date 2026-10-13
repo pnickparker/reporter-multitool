@@ -13,24 +13,37 @@
 const VERCEL_HARD_CEILING_SECONDS = 300;
 
 /**
- * The limit we currently sell/allow — today, a single flat v1 tier. Picked
- * so that a 10-minute video at typical 1080p phone bitrate (the number
- * given to the freelance testers as "safe") clears with real margin, while
- * 15+ minutes gets rejected.
+ * The limit we currently allow: how long processing may be expected to take, kept
+ * well under the server's hard 5-minute ceiling (the work also watches its own
+ * clock — see process.ts — so a wrong guess ends as "saved, not transcribed",
+ * never a stuck screen). Today a single flat v1 tier; the number that would
+ * become per-plan.
  */
 export const MAX_ESTIMATED_PROCESSING_SECONDS = 260;
 
 /**
- * Calibrated from two real data points (2026-10-01): a 274.7MB/176s video
- * that timed out (implying ~6.3MB/s effective download throughput once
- * transcription time is subtracted out), and a 2.3MB/562s synthetic clip
- * that transcribed+pipelined in ~28s (~0.05s of processing per second of
- * audio). Padded modestly for safety margin, not fitted tightly — refine
- * as more real test data comes in.
+ * Calibrated from real runs on Vercel (2026-10-12), with the recording streamed
+ * straight from Drive to the transcription service (see process.ts):
+ *   - a 3.61 GB, 35:24 interview finished in 159 s: the transcript was ready at
+ *     116 s and the AI steps (best moments + post drafts) took the other 43 s;
+ *   - timed separately, the transcription service itself took 42 s for those
+ *     35 minutes (~50x real time), so moving the file took ~74 s (~49 MB/s);
+ *   - a 7.6 GB recording did not finish inside the allowance.
+ * The lesson: it is the file's SIZE (bytes to move), not the recording's length,
+ * that mostly decides the time — the old formula had this backwards and rejected
+ * a 35-minute video that processes in under three minutes. Each figure below is
+ * padded roughly 20-60% beyond what was measured; refine as more runs come in.
  */
-const ASSUMED_DOWNLOAD_BYTES_PER_SECOND = 5.5 * 1024 * 1024; // ~5.5MB/s, a bit under the one measurement we have
-const ASSUMED_PROCESSING_SECONDS_PER_AUDIO_SECOND = 0.06; // a bit over the one measurement we have
-const FIXED_OVERHEAD_SECONDS = 20; // Drive auth, AssemblyAI submission, Claude pipeline round trips
+const ASSUMED_BYTES_PER_SECOND_MOVING_THE_FILE = 40_000_000; // measured ~49 MB/s
+const ASSUMED_SECONDS_PER_AUDIO_SECOND = 0.03; // measured ~0.02 (50x real time)
+const FIXED_OVERHEAD_SECONDS = 55; // measured ~43 s of AI steps, plus authentication and hand-offs
+
+/**
+ * When the recording's length isn't known, assume it's long for its size (a low
+ * bitrate stretches the same bytes over more time), so the guess errs toward
+ * "saved, not transcribed" — which Transcribe now can still override.
+ */
+const FALLBACK_BYTES_PER_AUDIO_SECOND = 250_000;
 
 export interface ProcessingEstimateInput {
   /** Bytes — from Drive's file metadata. */
@@ -40,16 +53,26 @@ export interface ProcessingEstimateInput {
 }
 
 /**
- * Best-effort estimate of total processing time (download + transcribe +
- * AI pipeline) for a file we haven't attempted yet. Missing inputs (e.g. no
- * duration for an audio file) just drop that term rather than failing closed
- * — file size alone is still a reasonable signal, since download time scales
- * with size regardless of asset type.
+ * Best-effort estimate of total processing time (move the file + transcribe +
+ * AI steps) for a file we haven't attempted yet. If the length is unknown it is
+ * guessed from the size (conservatively, see above); if the size is unknown only
+ * the length-based part is counted.
  */
 export function estimateProcessingSeconds({ fileSizeBytes, durationSeconds }: ProcessingEstimateInput): number {
-  const downloadSeconds = fileSizeBytes ? fileSizeBytes / ASSUMED_DOWNLOAD_BYTES_PER_SECOND : 0;
-  const transcribeSeconds = durationSeconds ? durationSeconds * ASSUMED_PROCESSING_SECONDS_PER_AUDIO_SECOND : 0;
-  return FIXED_OVERHEAD_SECONDS + downloadSeconds + transcribeSeconds;
+  const movingSeconds = fileSizeBytes ? fileSizeBytes / ASSUMED_BYTES_PER_SECOND_MOVING_THE_FILE : 0;
+  const audioSeconds = durationSeconds ?? (fileSizeBytes ? fileSizeBytes / FALLBACK_BYTES_PER_AUDIO_SECOND : 0);
+  return FIXED_OVERHEAD_SECONDS + movingSeconds + audioSeconds * ASSUMED_SECONDS_PER_AUDIO_SECOND;
+}
+
+/**
+ * What processing usually takes, from the measurements above WITHOUT the safety padding — for telling a reporter
+ * "this usually takes about N minutes", not for deciding what to allow. Null when nothing is known about the recording.
+ */
+export function typicalProcessingSeconds({ fileSizeBytes, durationSeconds }: ProcessingEstimateInput): number | null {
+  if (fileSizeBytes === null && durationSeconds === null) return null;
+  const moving = fileSizeBytes ? fileSizeBytes / 49_000_000 : 0; // measured ~49 MB/s
+  const transcribing = durationSeconds ? durationSeconds / 50 : 0; // measured ~50x real time
+  return 45 + moving + transcribing; // ~43 s of AI steps plus hand-offs
 }
 
 export function exceedsProcessingLimit(input: ProcessingEstimateInput): boolean {
@@ -58,4 +81,41 @@ export function exceedsProcessingLimit(input: ProcessingEstimateInput): boolean 
 
 if (MAX_ESTIMATED_PROCESSING_SECONDS >= VERCEL_HARD_CEILING_SECONDS) {
   throw new Error("MAX_ESTIMATED_PROCESSING_SECONDS must stay below the Vercel hard ceiling for safety margin");
+}
+
+/**
+ * What a recording that is too long to transcribe automatically says. The
+ * recording itself is fine — it's saved in full — so this must read as "saved,
+ * transcript not made yet", never as a failure: nothing may make a reporter
+ * feel their recording was refused or lost.
+ */
+export const OVER_LIMIT_MESSAGE =
+  "Saved. This recording is too long or large to transcribe automatically right now, so there is no transcript or best moments yet. Your original is safe — tap Share on this item to get it out.";
+
+/**
+ * What a recording says when it was saved but its processing didn't finish in
+ * time (the server gives each recording a fixed number of minutes). Like the
+ * over-limit message, it must read as "saved, transcript not made yet" — never
+ * as a failure or a loss.
+ */
+export const PROCESSING_TIMEOUT_MESSAGE =
+  "Saved. Processing this recording took longer than the server allows, so there is no transcript or best moments yet. Your original is safe — tap Share on this item to get it out, or try Transcribe now.";
+
+/** The wording used before the messages above (kept so older rows are still recognised). */
+const LEGACY_OVER_LIMIT_PREFIX = "This recording is too long/large";
+
+/** True for a recording that was saved fine but not processed (too long, or ran out of time) — as opposed to one that genuinely failed. */
+export function isSavedNotProcessed(asset: { status: string; errorMessage: string | null }): boolean {
+  if (asset.status !== "ERROR" || !asset.errorMessage) return false;
+  return asset.errorMessage.startsWith("Saved. ") || asset.errorMessage.startsWith(LEGACY_OVER_LIMIT_PREFIX);
+}
+
+/** How long processing may sit in "Transcribing" before the screen stops claiming it's still working: the server's own limit is 5 minutes, so anything older was cut off. */
+const STUCK_PROCESSING_MS = 12 * 60 * 1000;
+
+/** A recording still marked as processing long after the server could have been working on it. */
+export function isStuckProcessing(asset: { status: string; uploadedAt: Date; processingStartedAt: Date | null }): boolean {
+  if (asset.status !== "TRANSCRIBING" && asset.status !== "GENERATING") return false;
+  const startedAt = asset.processingStartedAt ?? asset.uploadedAt; // older rows have no start time recorded
+  return Date.now() - startedAt.getTime() > STUCK_PROCESSING_MS;
 }

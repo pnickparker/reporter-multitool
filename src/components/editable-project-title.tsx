@@ -45,13 +45,10 @@ export function EditableProjectTitle({ projectId, name }: { projectId: string; n
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="flex-1 rounded border border-zinc-300 px-2 py-1 text-2xl font-semibold dark:border-zinc-700 dark:bg-zinc-900"
+          aria-label="Project name"
+          className="field min-w-0 flex-1 font-display text-2xl font-bold"
         />
-        <button
-          type="submit"
-          disabled={saving}
-          className="text-sm font-medium text-zinc-900 hover:underline disabled:opacity-50 dark:text-zinc-100"
-        >
+        <button type="submit" disabled={saving} className="btn-primary">
           {saving ? "Saving…" : "Save"}
         </button>
         <button
@@ -61,23 +58,19 @@ export function EditableProjectTitle({ projectId, name }: { projectId: string; n
             setValue(name);
             setError(null);
           }}
-          className="text-sm text-zinc-500 hover:underline"
+          className="btn-ghost"
         >
           Cancel
         </button>
-        {error && <span className="w-full text-xs text-red-600">{error}</span>}
+        {error && <span className="w-full text-xs text-danger">{error}</span>}
       </form>
     );
   }
 
   return (
-    <div className="flex items-baseline gap-3">
-      <h1 className="text-2xl font-semibold">{name}</h1>
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="text-sm font-medium text-zinc-500 hover:underline"
-      >
+    <div className="flex flex-wrap items-center gap-x-2">
+      <h1 className="font-display text-3xl font-extrabold leading-tight tracking-tight">{name}</h1>
+      <button type="button" onClick={() => setEditing(true)} className="link-action -ml-2 text-violet-soft">
         Rename
       </button>
     </div>

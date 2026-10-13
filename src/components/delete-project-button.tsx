@@ -46,7 +46,7 @@ export function DeleteProjectButton({
       type="button"
       onClick={handleDelete}
       disabled={busy}
-      className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+      className="link-action text-danger"
     >
       {busy ? "Deleting…" : "Delete"}
     </button>

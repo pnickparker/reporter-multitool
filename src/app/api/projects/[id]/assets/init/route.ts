@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { initMediaUpload, AssetUploadError } from "@/lib/assets/create-asset";
+import { initUpload, AssetUploadError } from "@/lib/assets/create-asset";
 
-/** Same per-project upload entry point as POST /api/projects/[id]/assets, but for large audio/video that must go straight to Drive instead of through this server. */
+/** Same per-project upload entry point as POST /api/projects/[id]/assets, but for files — recordings, photos, PDFs — that go straight to Drive instead of through this server (which caps request bodies at a few MB). */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = await params;
   const user = await getCurrentUser();
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   try {
-    const { assetId, uploadUrl } = await initMediaUpload(projectId, { fileName, mimeType }, user);
+    const { assetId, uploadUrl } = await initUpload(projectId, { fileName, mimeType }, user);
     return NextResponse.json({ assetId, projectId, uploadUrl }, { status: 201 });
   } catch (err) {
     if (err instanceof AssetUploadError) {

@@ -2,8 +2,50 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { CreateProjectForm } from "@/components/create-project-form";
 import { TagBadges } from "@/components/tag-badges";
-import { DeleteProjectButton } from "@/components/delete-project-button";
 import { ProjectRowHeader } from "@/components/project-row-header";
+import { CaptureActions } from "@/components/capture-actions";
+import type { DotState } from "@/components/status-dot";
+import { isSavedNotProcessed, isStuckProcessing } from "@/lib/assets/processing-limits";
+
+const WORKING_STATUSES = ["TRANSCRIBING", "GENERATING"];
+
+type DotAsset = { status: string; errorMessage: string | null; uploadedAt: Date; processingStartedAt: Date | null };
+
+function projectDotState(assets: DotAsset[]): DotState {
+  // Cut off by the server's time limit but still marked "Transcribing": saved, not working.
+  const working = assets.filter((a) => WORKING_STATUSES.includes(a.status) && !isStuckProcessing(a));
+  if (working.length > 0) return "working";
+  if (assets.some(isStuckProcessing)) return "held";
+  // A recording saved but skipped for length isn't a failure — it gets its own calmer dot.
+  if (assets.some((a) => a.status === "ERROR" && !isSavedNotProcessed(a))) return "error";
+  if (assets.some(isSavedNotProcessed)) return "held";
+  if (assets.some((a) => a.status === "READY")) return "ready";
+  return "idle";
+}
+
+/** The project with clips being processed right now, if any — recent only, so a long-stuck row doesn't show as "working" forever. */
+async function getProcessingBanner(ownerId: string) {
+  const since = new Date(Date.now() - 60 * 60 * 1000);
+  const allWorking = await prisma.asset.findMany({
+    where: {
+      status: { in: WORKING_STATUSES as ("TRANSCRIBING" | "GENERATING")[] },
+      uploadedAt: { gte: since },
+      project: { ownerId },
+    },
+    select: {
+      status: true,
+      uploadedAt: true,
+      processingStartedAt: true,
+      project: { select: { id: true, name: true } },
+    },
+  });
+  // Items the server gave up on still carry a "working" status; they aren't working.
+  const working = allWorking.filter((a) => !isStuckProcessing(a));
+  if (working.length === 0) return null;
+  const first = working[0].project;
+  const count = working.filter((a) => a.project.id === first.id).length;
+  return { id: first.id, name: first.name, count };
+}
 
 export default async function Home({
   searchParams,
@@ -18,67 +60,101 @@ export default async function Home({
 
   if (!user) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-6 py-16">
-        <h1 className="text-2xl font-semibold">Reporter Multi-Tool</h1>
-        <p className="mt-4 text-zinc-600 dark:text-zinc-400">
-          Connect Google Drive to get started.
-        </p>
-        <a
-          href="/api/auth/google/connect"
-          className="mt-4 inline-block rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
-        >
+      <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-10">
+        <h1 className="font-display text-2xl font-extrabold tracking-tight">
+          Mobile News Bureau<span className="text-mint">.</span>
+        </h1>
+        <p className="mt-4 text-muted">Connect Google Drive to get started.</p>
+        <a href="/api/auth/google/connect" className="btn-primary mt-4">
           Connect Google Drive
         </a>
       </main>
     );
   }
 
-  const projects = await prisma.project.findMany({
-    where: { ownerId: user.id, ...(tag ? { tags: { has: tag } } : {}) },
-    include: { _count: { select: { assets: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [projects, banner] = await Promise.all([
+    prisma.project.findMany({
+      where: { ownerId: user.id, ...(tag ? { tags: { has: tag } } : {}) },
+      include: {
+        _count: { select: { assets: true } },
+        assets: { select: { status: true, errorMessage: true, uploadedAt: true, processingStartedAt: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    getProcessingBanner(user.id),
+  ]);
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-16">
-      <h1 className="text-2xl font-semibold">Reporter Multi-Tool</h1>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Signed in as {user.email}</p>
+    <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-8">
+      <header className="flex items-center justify-between">
+        <h1 className="font-display text-xl font-extrabold tracking-tight">
+          Mobile News Bureau<span className="text-mint">.</span>
+        </h1>
+        <span
+          title={`Signed in as ${user.email}`}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-2 text-base font-bold text-violet-soft"
+        >
+          <span aria-hidden="true">{user.email.charAt(0).toUpperCase()}</span>
+          <span className="sr-only">Signed in as {user.email}</span>
+        </span>
+      </header>
 
-      <div className="mt-8">
+      <h2 className="mt-6 font-display text-3xl font-extrabold leading-tight tracking-tight">
+        What are you covering?
+      </h2>
+
+      <CaptureActions endpoint="/api/quick-capture" goToProject layout="hero" />
+
+      {banner && (
+        <Link
+          href={`/projects/${banner.id}`}
+          className="mt-4 flex items-center gap-3 rounded-2xl bg-mint-deep px-4 py-3.5 text-sm leading-5 text-emerald-50"
+        >
+          <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-mint" />
+          <span>
+            <span className="font-bold">{banner.name}</span> · {banner.count} working
+          </span>
+        </Link>
+      )}
+
+      <div className="mt-6">
         <CreateProjectForm />
       </div>
 
+      <div className="mt-7 flex items-center justify-between">
+        <h2 className="font-display text-xl font-extrabold">Projects</h2>
+      </div>
+
       {tag && (
-        <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
-          Showing beat: <span className="font-medium">{tag}</span> —{" "}
-          <Link href="/" className="hover:underline">
+        <p className="mt-2 text-sm text-muted">
+          Showing beat: <span className="font-semibold text-ink">{tag}</span> —{" "}
+          <Link href="/" className="text-violet-soft hover:underline">
             clear filter
           </Link>
         </p>
       )}
 
-      <ul className="mt-4 flex flex-col gap-2">
+      <ul className="mt-3 flex flex-col gap-3">
         {projects.map((project) => (
-          <li
-            key={project.id}
-            className="rounded border border-zinc-200 px-4 py-3 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-          >
+          <li key={project.id} className="rounded-3xl bg-surface px-4 pb-1 pt-1">
             <ProjectRowHeader
               projectId={project.id}
               name={project.name}
               assetCount={project._count.assets}
+              state={projectDotState(project.assets)}
             />
-            <div className="mt-2 flex items-center justify-between">
-              {project.tags.length > 0 ? <TagBadges tags={project.tags} /> : <span />}
-              <DeleteProjectButton projectId={project.id} projectName={project.name} />
-            </div>
+            {project.tags.length > 0 && (
+              <div className="pb-3 pl-[22px]">
+                <TagBadges tags={project.tags} />
+              </div>
+            )}
           </li>
         ))}
         {projects.length === 0 && tag && (
-          <p className="text-sm text-zinc-500">No projects tagged &ldquo;{tag}&rdquo;.</p>
+          <p className="text-sm text-muted">No projects tagged &ldquo;{tag}&rdquo;.</p>
         )}
         {projects.length === 0 && !tag && (
-          <p className="text-sm text-zinc-500">No projects yet — create one above.</p>
+          <p className="text-sm text-muted">No projects yet — start a capture above, or create one.</p>
         )}
       </ul>
     </main>

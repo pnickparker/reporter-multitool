@@ -66,6 +66,32 @@ export async function downloadFile(auth: OAuth2Client, fileId: string): Promise<
   return Buffer.from(res.data as ArrayBuffer);
 }
 
+/**
+ * Opens a Drive file as a stream, optionally just a byte range of it (Drive
+ * answers 206 Partial Content). Playback needs ranges: browsers — iPhone
+ * Safari above all — only play audio/video from a server that lets them jump
+ * around in the file.
+ */
+export async function openFileStream(auth: OAuth2Client, fileId: string, range?: string) {
+  const drive = google.drive({ version: "v3", auth });
+  const res = await drive.files.get(
+    { fileId, alt: "media" },
+    { responseType: "stream", headers: range ? { Range: range } : {} },
+  );
+  // The Drive client hands headers back as a fetch-style Headers object, not a plain object.
+  const raw = res.headers as unknown as { get?: (name: string) => string | null } & Record<string, string | undefined>;
+  const read = (name: string) => (typeof raw.get === "function" ? (raw.get(name) ?? undefined) : raw[name]);
+  return {
+    status: res.status,
+    headers: {
+      "content-type": read("content-type"),
+      "content-length": read("content-length"),
+      "content-range": read("content-range"),
+    },
+    body: res.data,
+  };
+}
+
 /** File size (and video duration, when Drive has it — not exposed for audio) for a just-uploaded file, read before committing to transcribe it. */
 export async function getFileStats(
   auth: OAuth2Client,
