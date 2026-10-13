@@ -4,23 +4,17 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 
 **See also: "Reporter Multi-Tool: Product Plan"** — a fuller vision/workflow doc Nick built on claude.ai (not in this repo by design; saved as PDF to `~/Library/Mobile Documents/com~apple~CloudDocs/01_Multitool/`). It's the source of truth for the *why* behind v1 scope and the locked build order below; this file stays the technical build log.
 
-## Next session checklist (updated 2026-10-12, end of day — start here)
+## Where things stand (2026-10-13) — start here
 
-**State:** everything is on the `redesign-purple-green` branch (pushed through `9f766c9`, plus any notes commits since). It is NOT merged to `main`, so the testers' live site still has the old look and none of the fixes below. Use the **stable branch address** (the one containing `git-redesign-purple-green`) for every test; previews need a Vercel login, so testers cannot open them.
+**The redesign is LIVE.** The `redesign-purple-green` branch was merged into `main` (merge commit `d543631`) and pushed on 2026-10-13; Vercel's production build was serving it within about a minute at **reporter-multitool.vercel.app** (believed to be the address testers use — confirm). Checked from outside: the install file and icons load without a login; every other page, including the upload and re-run routes, still redirects to the sign-in page. Before the merge: full production build passed, no new environment variables were needed, and the four database additions the new code uses (`fileSizeBytes`, `mimeType`, `processingStartedAt`, `speakerNames`) were already applied (all add-only). **Undo:** Vercel → Deployments → the previous Production entry → Instant Rollback / Promote to Production (nothing in the database needs undoing).
+**New work goes on a new branch again** (testers are on `main` now), then merge when tested. Previews still need a Vercel login, so testers can't open them; test on Nick's phone via the stable branch address, then merge.
 
-**Built and checked today (details in the sections above):** resume after a force-quit and automatic retries; phone-side backup, Save to phone, screen stays awake; clear failure reasons and smaller retry pieces; "Saved, not transcribed" (amber) instead of red errors; Transcribe now; stuck-processing detection and its own deadline; real streaming from Drive to transcription (memory flat); files over 2.1 GB no longer break the final save; Share video refuses early when too large; Export text stays in the app; big Home button; no-speech message; 2-speaker default; blank line between speakers; leftover-upload Remove; record-circle icon and home-screen install; limit rebuilt from measurements (35 minutes / 3.6 GB processed in 159 s); voice-recorder hint under Upload.
-
-**Tomorrow, in order:**
-1. **Long-audio test (Nick):** upload an hour or more of audio (a podcast episode) on the stable address; report how long it takes to finish and whether it lands ready or amber. Tightens the audio ceiling (the formula predicts about 1.5 hours).
-2. **Android test (a tester):** the same script as the iPhone — camera button (does it open the camera or a file picker?), Upload, a voice recording from their phone's own recorder (any odd format?), airplane mode mid-upload, closing the tab and resuming, Save to phone, Share video, Export text.
-3. **iPhone home-screen app (Nick):** the icon and "News Bureau" label looked right? Full-screen? It asks for the passphrase again (separate storage) — expected.
-4. **Done 2026-10-13:** the honest progress display and the re-run-with-a-speaker-count control (see above). Also done 2026-10-13: renaming speakers (Michael's request).
-5. **Merge to `main` when 1–3 pass:** Claude merges locally (expect small conflicts in the notes files), Nick pushes `main`, confirm the **production** deployment shows Ready on the new commit, send testers a heads-up about the new look and the safeguards (and that file size, not just minutes, decides whether a recording is transcribed automatically), then testers add the normal address to their home screens — **install first, then use** (a home-screen app keeps its own storage).
-6. **Tester questions to send (now 1–9)** plus anything new: the Share/Export labels, whether the Home button is easy to find, whether they hit "preparing…" waits with old iCloud videos.
-
-**Parked (don't build yet):** long-form beyond the limit (background transcription, faster storage); in-app or desktop recorder; rename/reassign speakers; wider 64-bit file-size column (do after the merge); Word files; scorecard/stats (Notes covers it); accounts and data separation (the real gate to paying users); pricing and cost-per-interview research; name and trademark clearance.
-
-**Housekeeping to remember:** Nick's own test projects and files (the 557 MB music video, the 7.6 GB video, leftover placeholders) are his to delete; the stable address needs the passphrase once per device; Claude never pushes — Nick runs `git push`.
+**Next, in order:**
+1. **Nick logs in on the live address** (phone): new look, hint under Upload, a short test upload, old projects still there; add to home screen if desired (install first, then use).
+2. **Send testers the heads-up** (the list below is the content): the new look, safe uploads, progress, speaker naming and re-run, size-and-length limits; ask them to try a long audio upload and the two speaker tools and report back, with the exact words on screen if anything fails.
+3. **Watch for tester feedback** (Michael said he'd send written recommendations); the Android tester also answers: what does the big circle open, which voice recorder app do they use, do its files upload.
+4. **Known not-yet-done:** a wider (64-bit) file-size column; quote start–end times; tap a single transcript turn to change who said it; background transcription for recordings beyond the limit; accounts and data separation (the real gate to paying users); pricing and cost-per-interview research; name and trademark clearance. See "Parked" in earlier sections of these notes.
+**Housekeeping:** Nick's own test projects and files (the 557 MB music video, the 7.6 GB video, leftovers) are his to delete. Claude never pushes — Nick runs `git push`. The stable branch address and `/picker-test`-style temporary pages are gone; the only temporary things left are Nick's test data.
 
 ## Tell the testers — running list (started 2026-10-13; written for them, plain language; add as we go)
 
