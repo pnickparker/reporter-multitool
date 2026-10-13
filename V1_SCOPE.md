@@ -44,7 +44,7 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 
 **Please try, and tell Nick what happens**
 - Upload a long audio recording (30+ minutes) and tell us how long it takes and how the transcript looks.
-- Record or upload something with two or more people and check the speaker labels.
+- Record or upload something with two or more people and check the speaker labels. **Then try the two speaker tools and tell us what you think:** (1) tap a speaker under the transcript and give them a real name — did that feel natural, and did the name show where you expected (transcript, exported text)? (2) if the labels look wrong, use **Re-run…** and pick how many people were there — did it get better? Was anything about either one confusing, or something you wished it did?
 - Anything confusing, slow or missing? What were you trying to do? **Send the exact words on the screen** (or a screenshot) if something fails.
 - *Android testers:* does the big circle open the camera or a file picker? Which voice recorder app do you use, and does its file upload?
 
@@ -80,6 +80,8 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 ### Honest progress display while processing — BUILT (2026-10-13)
 
 From Nick's note that a progress indicator would reduce anxiety on big files. The transcription service reports no percentage, so there is deliberately **no percentage bar** (an invented one crawls to 99% and sits there). `src/components/processing-progress.tsx` shows instead: real steps (Uploaded ✓, Transcribing, Finding best moments and drafting posts) with the active one pulsing; a **live timer** counted from `processingStartedAt`; "Usually about N minutes for a recording like this" (`typicalProcessingSeconds` in `processing-limits.ts` — the measured figures *without* the safety padding: ~45 s fixed + size ÷ 49 MB/s + length ÷ 50); a soft "Taking a little longer than usual — it's still working" past 1.5× typical + 30 s; and **"You can close the app: it keeps going, and the results will be here when you come back."** Upload keeps its real percentage. Verified on screen through a full run: ✓ Uploaded → Transcribing 0:02… → ✓ Finding best moments… → Ready (43 s).
+
+**Re-run on the real group recording worked (Nick, 2026-10-13):** the 101-minute podcast with 6–7 voices, first labelled A/B only by the two-speaker default, was re-run on the preview build choosing the real number of people and came out right — "worked perfectly." This is the case the re-run control was built for.
 
 ### Naming speakers — BUILT (2026-10-13)
 
