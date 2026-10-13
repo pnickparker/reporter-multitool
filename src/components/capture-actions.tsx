@@ -238,7 +238,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
       <input
         ref={uploadRef}
         type="file"
-        accept="video/*,audio/*,image/*,application/pdf"
+        accept="video/*,audio/*,image/*,application/pdf,.mp3,.m4a,.wav,.aac,.aif,.aiff,.flac,.ogg,.opus,.amr,.caf"
         onChange={onFile}
         className="sr-only"
         tabIndex={-1}
