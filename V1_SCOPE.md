@@ -22,6 +22,32 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 
 **Housekeeping to remember:** Nick's own test projects and files (the 557 MB music video, the 7.6 GB video, leftover placeholders) are his to delete; the stable address needs the passphrase once per device; Claude never pushes — Nick runs `git push`.
 
+## Tell the testers — running list (started 2026-10-13; written for them, plain language; add as we go)
+
+**Send when the new version goes live (after the merge). Goes with a short message from Nick.**
+
+**What's new**
+- **New look**, and a big circle button on Home: tap it to open your camera (photo or video); it uploads on its own when you finish. **Note** is for typed or dictated notes; **Upload** is for anything already on your phone (video, audio, photos, PDFs).
+- **Your recording is safe if your signal drops.** Uploads retry on their own and pick up where they stopped. A copy is also kept on your phone until the upload finishes. If you ever see **Try again**, tap it — don't re-record. **Save to phone** puts a copy in your Photos.
+- **You can see what it's doing.** While a recording is processed you'll see the steps, a timer, and how long it usually takes. **You can close the app; it keeps going.**
+- **Clearer buttons.** **Share video / photo / audio** sends you the original file. **Export text** is the transcript, best moments and posts. The big **Home** button is always at the top of a project.
+- **Speaker labels:** a best guess — **check them before you publish**. If they look wrong, tap **"Speaker labels look wrong? Re-run…"** under the transcript and pick how many people were talking. (Renaming "Speaker A" to a real name is coming.)
+- **Longer recordings work.** Roughly 40 minutes of video or 1½ hours of audio is processed automatically. Bigger ones are saved with an amber note, "Saved, not transcribed" — tap **Transcribe now** to try it anyway. Size matters as much as minutes (4K video is huge).
+
+**Good to know**
+- **For audio, use your phone's own voice recorder, then Upload it** (that's the most reliable way to record an interview).
+- Word documents aren't supported yet (photos, PDFs, video and audio are).
+- A long or old video stored in iCloud can take many minutes on "preparing…" before the upload starts — that's the phone, not the app.
+- Very large videos can't be sent with Share video; use **Open in Drive** instead.
+- **Add it to your home screen** (Share → Add to Home Screen) for an app icon that opens full-screen. Do this *before* you start using it: the home-screen version asks for the passphrase again and keeps its own storage.
+- The quotes are suggestions — play the moment (tap the time) and check them against the audio before using them.
+
+**Please try, and tell Nick what happens**
+- Upload a long audio recording (30+ minutes) and tell us how long it takes and how the transcript looks.
+- Record or upload something with two or more people and check the speaker labels.
+- Anything confusing, slow or missing? What were you trying to do? **Send the exact words on the screen** (or a screenshot) if something fails.
+- *Android testers:* does the big circle open the camera or a file picker? Which voice recorder app do you use, and does its file upload?
+
 ## Status as of 2026-09-25 (read this first when resuming)
 
 **The entire locked build order from the 2026-09-24 Product Plan is now done.** All four items (whole-project export, Notes/Documents, quick capture + pre-event fields, beat tagging) are built and verified. There is no pre-assigned "next thing" anymore — the next step needs a real decision from Nick, informed by either the open question below or actual field testing with real recordings.
