@@ -16,6 +16,21 @@ Decided in conversation on 2026-09-15, building on `REPORTER_MULTITOOL_BRIEF.md`
 4. **Known not-yet-done:** a wider (64-bit) file-size column; quote start–end times; tap a single transcript turn to change who said it; background transcription for recordings beyond the limit; accounts and data separation (the real gate to paying users); pricing and cost-per-interview research; name and trademark clearance. See "Parked" in earlier sections of these notes.
 **Housekeeping:** Nick's own test projects and files (the 557 MB music video, the 7.6 GB video, leftovers) are his to delete. Claude never pushes — Nick runs `git push`. The stable branch address and `/picker-test`-style temporary pages are gone; the only temporary things left are Nick's test data.
 
+## How to work with Nick — standing rules for a fresh session (written 2026-10-13)
+
+A new Claude session (for example on another computer) has none of the earlier conversation or its memory, so these are written down here.
+- **Claude never runs `git push`.** Give Nick the command in a code block; he runs it in his own terminal and pastes the result. After he pushes, confirm it landed and — for `main` — that Vercel's *production* deployment is **Ready** ("committed is not deployed").
+- **Never ask Nick to paste secrets** (API keys, passphrases, tokens) into chat. Don't read `.env` directly; scripts that need it use `import "dotenv/config"`. Route secrets to the dashboard or form that needs them and verify indirectly.
+- **Verify against real data before concluding**, and show the evidence (database queries, real runs, measured numbers). Say plainly what is unverified. If an earlier note might be wrong, check it.
+- **Don't build large or speculative features before they're validated.** Give options with a recommendation, let Nick decide, then build. Small, clearly-wanted fixes are fine.
+- **Delete only test data you can identify by exact name or ID** — never match by time window, and never Nick's real data without his say (an early cleanup removed an empty placeholder of his by mistake). Test against throwaway rows; Drive files are shared with real recordings, so remove database rows, not Drive files, unless the file is yours by exact name.
+- **Nick is new to Claude Code but sharp on product and business.** Plain language, step-by-step GUI guidance for external services (Vercel, GitHub, Supabase, Drive), short summaries with the decision he needs to make up front.
+- **Keep `V1_SCOPE.md` (technical log) and `BUSINESS_NOTES.md` (business thinking) in sync** as things change. Read `BUSINESS_NOTES.md` before any work on pricing, accounts, customers or a paid product.
+- **This is not the Next.js you know** (see `AGENTS.md`): read `node_modules/next/dist/docs/` before writing Next.js code.
+- **Local development and production share ONE database** (Supabase). Treat local writes as real. Schema changes must be **add-only** (new optional columns): the live site's code runs against the same database, and adding enum values or changing column types would break it.
+- **Testing flow:** testers use the live site (`main`). New work goes on a branch; Vercel preview addresses need a Vercel login (testers can't open them), so test on Nick's phone via the branch's stable address (`reporter-multitool-git-<branch>-mobile-news.vercel.app`, pattern confirmed for `redesign-purple-green`), then merge to `main`. Vercel → Deployments → Instant Rollback undoes a bad live deploy.
+- **Known: the Mac Studio's local `.env` has a stale `GOOGLE_CLIENT_SECRET`** (so Drive calls from local dev there can fail with `invalid_client`; production is fine). Fix it from the Vercel dashboard, not by pasting values into chat.
+
 ## Tell the testers — running list (started 2026-10-13; written for them, plain language; add as we go)
 
 **Send when the new version goes live (after the merge). Goes with a short message from Nick.**
