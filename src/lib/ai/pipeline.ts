@@ -29,6 +29,7 @@ export async function processAiPipeline(assetId: string) {
             reason: q.reason,
             engagementScore: q.engagementScore,
             verification: q.verification,
+            endTimestamp: q.endSeconds,
           },
         }),
       ),

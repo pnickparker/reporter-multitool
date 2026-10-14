@@ -17,6 +17,8 @@ export type QuoteVerification = "exact" | "adjusted";
 export interface VerifiedQuoteText {
   text: string;
   verification: QuoteVerification;
+  /** Which speaker turn (index into the utterances passed in) the quote was found in. */
+  turnIndex: number;
 }
 
 interface Token {
@@ -92,7 +94,7 @@ export function verifyQuote(quote: string, utterances: Utterance[]): VerifiedQuo
   if (qWords.length < 3) return null;
 
   const turns = utterances
-    .map((u) => ({ text: u.text ?? "", tokens: wordTokens(u.text ?? "") }))
+    .map((u, index) => ({ index, text: u.text ?? "", tokens: wordTokens(u.text ?? "") }))
     .filter((t) => t.tokens.length > 0);
 
   // 1. The same words, in a row, inside one speaker's turn.
@@ -100,7 +102,7 @@ export function verifyQuote(quote: string, utterances: Utterance[]): VerifiedQuo
     const at = findRun(turn.tokens, qWords);
     if (at >= 0) {
       const first = turn.tokens[at], last = turn.tokens[at + qWords.length - 1];
-      return { text: tidyEnd(turn.text.slice(first.start, last.end)), verification: "exact" };
+      return { text: tidyEnd(turn.text.slice(first.start, last.end)), verification: "exact", turnIndex: turn.index };
     }
   }
 
@@ -116,7 +118,7 @@ export function verifyQuote(quote: string, utterances: Utterance[]): VerifiedQuo
     const span = turn.tokens.slice(startAt, endAt + 1);
     if (span.length > qWords.length * MAX_SPAN_GROWTH + MAX_SPAN_SLACK) continue;
     if (!isSubsequence(qWords, span.map((t) => t.norm))) continue;
-    return { text: tidyEnd(turn.text.slice(span[0].start, span[span.length - 1].end)), verification: "adjusted" };
+    return { text: tidyEnd(turn.text.slice(span[0].start, span[span.length - 1].end)), verification: "adjusted", turnIndex: turn.index };
   }
 
   return null;
@@ -148,3 +150,33 @@ export function checkPostQuotes(copy: string, utterances: Utterance[]): "ok" | "
   }
   return checked > 0 ? "ok" : null;
 }
+
+/**
+ * When a quote starts and ends in the recording, in seconds, worked out from the
+ * per-word timings of the speaker turn it was found in. Lets the player play just
+ * the quote. Null when the turn has no word timings or the words can't be lined up.
+ */
+export function quoteTiming(quoteText: string, turn: Utterance): { start: number; end: number } | null {
+  const qWords = wordsOf(quoteText);
+  if (qWords.length === 0 || !Array.isArray(turn.words)) return null;
+
+  // One entry per word the way this module splits words ("well-known" is two), each carrying its word's times.
+  const timed: { norm: string; start: number; end: number }[] = [];
+  for (const w of turn.words) {
+    if (typeof w.start !== "number" || typeof w.end !== "number") continue;
+    for (const piece of wordsOf(w.text ?? "")) timed.push({ norm: piece, start: w.start, end: w.end });
+  }
+  for (let i = 0; i + qWords.length <= timed.length; i++) {
+    let match = true;
+    for (let j = 0; j < qWords.length; j++) if (timed[i + j].norm !== qWords[j]) { match = false; break; }
+    if (match) {
+      const start = timed[i].start / 1000;
+      // Word timings can run short on fast or mumbled speech; never end earlier than a brisk 4.5 words a second allows,
+      // so playing "just the quote" doesn't cut the speaker off.
+      const end = Math.max(timed[i + qWords.length - 1].end / 1000, start + qWords.length / 4.5);
+      return { start, end };
+    }
+  }
+  return null;
+}
+

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { parseStructured } from "./run";
-import { turnsFrom, verifyQuote, type QuoteVerification } from "./verify";
+import { quoteTiming, turnsFrom, verifyQuote, type QuoteVerification } from "./verify";
 import { AP_STYLE_INSTRUCTION } from "./style";
 
 const QuotesSchema = z.object({
@@ -26,6 +26,8 @@ export interface FlaggedQuoteResult {
   engagementScore: number;
   /** How the quote was checked against the transcript — see verify.ts. */
   verification: QuoteVerification;
+  /** When the quote ends, in seconds, or null if the transcript has no word timings. */
+  endSeconds: number | null;
 }
 
 interface Utterance {
@@ -68,7 +70,15 @@ export async function flagQuotes(
       console.warn("Dropped a flagged quote that doesn't match what was said");
       continue;
     }
-    results.push({ ...q, text: verified.text, verification: verified.verification });
+    // Exact start and end from the per-word timings (falls back to the AI's own start time).
+    const timing = quoteTiming(verified.text, turns[verified.turnIndex]);
+    results.push({
+      ...q,
+      text: verified.text,
+      verification: verified.verification,
+      timestampSeconds: timing ? timing.start : q.timestampSeconds,
+      endSeconds: timing ? timing.end : null,
+    });
   }
   return results;
 }

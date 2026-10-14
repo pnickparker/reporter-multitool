@@ -97,6 +97,8 @@ model FlaggedQuote {
   assetId         String
   asset           Asset  @relation(fields: [assetId], references: [id])
   timestamp       Float
+  /// When the quote ends (seconds into the recording), from per-word timings — lets the player play just the quote. Null on older quotes.
+  endTimestamp    Float?
   text            String
   reason          String
   engagementScore Int    @default(0)

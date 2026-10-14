@@ -6,6 +6,8 @@ interface Quote {
   id: string;
   text: string;
   timestamp: number;
+  /** When the quote ends, in seconds; absent on older quotes (the player then plays on). */
+  endTimestamp?: number | null;
   reason: string;
   /** "exact" or "adjusted" (see lib/ai/verify.ts); absent on quotes saved before the check existed. */
   verification?: string | null;
@@ -78,7 +80,7 @@ export function QuotesView({ quotes }: { quotes: Quote[] }) {
                 <ScoreRing score={q.engagementScore} strong={strong} />
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-                <SeekChip seconds={q.timestamp} label={formatTimestamp(q.timestamp)} />
+                <SeekChip seconds={q.timestamp} endSeconds={q.endTimestamp} label={formatTimestamp(q.timestamp)} />
                 {strong && <span className="text-xs font-bold text-mint">Post drafts generated</span>}
                 {q.engagementScore >= BUTTER_SCORE_THRESHOLD && (
                   <span

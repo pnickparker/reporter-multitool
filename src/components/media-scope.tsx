@@ -1,12 +1,19 @@
 "use client";
 
-import { createContext, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 
 interface MediaContextValue {
   hasMedia: boolean;
   register: (el: HTMLMediaElement | null) => void;
-  seek: (seconds: number) => void;
+  /** Jump to a moment and play; with `endSeconds`, stop at the end of the quote instead of playing on. */
+  seek: (seconds: number, endSeconds?: number | null) => void;
+  /** True from a tap until playback actually starts (a big video can take a few seconds). */
+  loading: boolean;
 }
+
+/** Start a little before the quote and stop a little after it, so the first and last words aren't clipped. */
+const LEAD_IN_SECONDS = 0.4;
+const TAIL_SECONDS = 0.6;
 
 const MediaContext = createContext<MediaContextValue | null>(null);
 
@@ -17,22 +24,72 @@ const MediaContext = createContext<MediaContextValue | null>(null);
  */
 export function MediaScope({ hasMedia, children }: { hasMedia: boolean; children: ReactNode }) {
   const mediaRef = useRef<HTMLMediaElement | null>(null);
+  const stopAtRef = useRef<number | null>(null);
+  const programmaticSeekRef = useRef(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Listens to the player so "Loading…" is honest and a quote's stop point is dropped if the listener takes over.
+  const register = useCallback((el: HTMLMediaElement | null) => {
+    cleanupRef.current?.();
+    cleanupRef.current = null;
+    mediaRef.current = el;
+    if (!el) return;
+
+    const playing = () => setLoading(false);
+    const waiting = () => setLoading(true);
+    const stopped = () => {
+      setLoading(false);
+      if (el.paused) stopAtRef.current = null;
+    };
+    const seeking = () => {
+      // A seek we didn't make (the listener dragging the slider) cancels "stop at the end of the quote".
+      if (programmaticSeekRef.current) programmaticSeekRef.current = false;
+      else stopAtRef.current = null;
+    };
+    // timeupdate only fires a few times a second, so watch the clock more closely while a quote is playing.
+    const watch = setInterval(() => {
+      const stopAt = stopAtRef.current;
+      if (stopAt !== null && !el.paused && el.currentTime >= stopAt) {
+        el.pause();
+        stopAtRef.current = null;
+      }
+    }, 80);
+
+    el.addEventListener("playing", playing);
+    el.addEventListener("waiting", waiting);
+    el.addEventListener("pause", stopped);
+    el.addEventListener("ended", stopped);
+    el.addEventListener("error", stopped);
+    el.addEventListener("seeking", seeking);
+    cleanupRef.current = () => {
+      clearInterval(watch);
+      el.removeEventListener("playing", playing);
+      el.removeEventListener("waiting", waiting);
+      el.removeEventListener("pause", stopped);
+      el.removeEventListener("ended", stopped);
+      el.removeEventListener("error", stopped);
+      el.removeEventListener("seeking", seeking);
+    };
+  }, []);
 
   const value = useMemo<MediaContextValue>(
     () => ({
       hasMedia,
-      register: (el) => {
-        mediaRef.current = el;
-      },
-      seek: (seconds) => {
+      register,
+      loading,
+      seek: (seconds, endSeconds) => {
         const el = mediaRef.current;
         if (!el) return;
-        el.currentTime = seconds;
+        stopAtRef.current = typeof endSeconds === "number" && endSeconds > seconds ? endSeconds + TAIL_SECONDS : null;
+        programmaticSeekRef.current = true;
+        setLoading(true);
+        el.currentTime = Math.max(0, seconds - LEAD_IN_SECONDS);
         // Called from a tap, so browsers allow playback to start.
-        void el.play().catch(() => {});
+        void el.play().catch(() => setLoading(false));
       },
     }),
-    [hasMedia],
+    [hasMedia, register, loading],
   );
 
   return <MediaContext.Provider value={value}>{children}</MediaContext.Provider>;
@@ -74,12 +131,17 @@ export function MediaPlayer({ assetId, kind }: { assetId: string; kind: "AUDIO" 
           className="w-full"
         />
       )}
+      {ctx?.loading && (
+        <p role="status" className="px-2 pb-1 pt-2 text-xs text-muted">
+          Loading — a large video can take a few seconds to start from here.
+        </p>
+      )}
     </div>
   );
 }
 
 /** A quote's timestamp — a tap-to-play button when there's a player beside it, plain text otherwise. */
-export function SeekChip({ seconds, label }: { seconds: number; label: string }) {
+export function SeekChip({ seconds, endSeconds, label }: { seconds: number; endSeconds?: number | null; label: string }) {
   const ctx = useContext(MediaContext);
 
   if (!ctx?.hasMedia) {
@@ -89,8 +151,8 @@ export function SeekChip({ seconds, label }: { seconds: number; label: string })
   return (
     <button
       type="button"
-      onClick={() => ctx.seek(seconds)}
-      aria-label={`Play from ${label}`}
+      onClick={() => ctx.seek(seconds, endSeconds)}
+      aria-label={endSeconds ? `Play this quote, from ${label}` : `Play from ${label}`}
       className="inline-flex min-h-11 items-center gap-2 rounded-full bg-line px-4 text-xs font-medium text-violet-100 hover:brightness-125"
     >
       <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">

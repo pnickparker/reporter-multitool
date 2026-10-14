@@ -1,6 +1,11 @@
 export interface Utterance {
   speaker?: string;
   text?: string;
+  /** Milliseconds from the start of the recording. */
+  start?: number;
+  end?: number;
+  /** Per-word timings, when the transcription service gave them. */
+  words?: { text?: string; start?: number; end?: number }[];
 }
 
 /** Shared by the transcript UI and export — narrows AssemblyAI's stored JSON segments to speaker turns. */
