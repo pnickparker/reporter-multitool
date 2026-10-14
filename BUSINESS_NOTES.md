@@ -135,3 +135,24 @@ Nick wants the app to handle podcast-length interviews (40+ minutes and up). He'
 
 **Honest status (2026-10-13):** works within limits. About 40 minutes of 1080p video, ~25 minutes of 4K phone video and ~1.5 hours of audio process automatically (a 101-minute podcast took under 3 minutes); larger recordings are saved with a clear note and can be tried with **Transcribe now**. Beyond that — recordings that never fit in five minutes, or multi-gigabyte files — still needs the background-transcription and faster-storage work described in V1_SCOPE.md ("Goal: long-form recordings"). Don't promise numbers to anyone beyond what has been measured.
 
+## Product focus — what we are and aren't building (Nick, 2026-10-14; draft wording, edit freely)
+
+**The mission:** not a Swiss Army knife. A tool that does a few things right for one specific user — the working reporter — and works well *with* the other tools they already use. Nick's own first reaction to a feature idea was "yeah, let's add more fun tech toys!"; the reset came from asking what the tool is for. It also sharpens the pitch: *bring us whatever you recorded, with whatever you recorded it on, and we turn it into a transcript, ranked quotes and ready-to-use posts — safely.*
+
+**What the core does (and must do right):** take in a recording from any source → transcribe it → find and score the quotable moments → draft posts → let the reporter check, name speakers, and take it out again — and **never lose a recording** along the way (see "Long-form recordings" for that rule).
+
+**The test for a new idea (suggested):** (1) Does it make the transcript → quotes → share path better for a working reporter? (2) Could another tool already do it well, with us accepting its output? (3) Did real users ask — more than one tester, not just a "wouldn't that be cool"? (4) Does it risk the never-lose-a-recording rule? If it fails (1) or (2), the answer is usually "use the other tool, then upload it here."
+
+**How that has already played out (good material for the pitch):**
+| Idea | Decision | Use instead |
+|---|---|---|
+| Record with both cameras at once (Rode Capture) | Not built — needs a native app, adds video polish not transcript value | Record in Rode Capture, then Upload |
+| In-app audio recorder | Not built — phones' own recorders are more reliable | Voice Memos / the phone's recorder, then Upload |
+| Record on the desktop | Parked, nobody asked | Upload a file |
+| Word documents | Not built, guessed rare | PDFs, photos, notes |
+| Sports scorecards and stats | Not built — a different product | Notes in the same project as the interviews |
+| Editing transcript text | Not built — would drift from the audio and the quotes | Correct in the reporter's own writing tool; re-run speakers instead |
+| Very long recordings | Handled up to a measured limit; the rest saved safely | Trim, or Transcribe now |
+| **Speaker naming, re-run with a speaker count, honest progress, safe resumable uploads** | **Built** — they make the core path trustworthy | — |
+| Accepting long audio/video from other sources | **Built** — the "works with your other tools" promise | Podcast tools, Rode, voice recorders, other cameras |
+
