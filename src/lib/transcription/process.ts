@@ -1,11 +1,13 @@
 import { Prisma, type GoogleDriveConnection } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { transcribeBuffer, transcribeStream, type SpeakerChoice } from "./assemblyai";
+import { deleteRemoteTranscript, transcribeBuffer, transcribeStream, type SpeakerChoice } from "./assemblyai";
 import { processAiPipeline } from "@/lib/ai/pipeline";
 import { errorMessage } from "@/lib/error-message";
 import { getDriveClientForUser } from "@/lib/google/drive-client";
 import { openFileStream } from "@/lib/storage/google-drive";
 import { PROCESSING_TIMEOUT_MESSAGE } from "@/lib/assets/processing-limits";
+import { recordUsage } from "@/lib/usage/record";
+import { alertAssetProblem } from "@/lib/alerts";
 
 export interface ProcessOptions {
   /** How many speakers to expect: a number, or "auto" to let the service decide. Leave out for the length-based default. */
@@ -53,16 +55,17 @@ async function recordFailure(assetId: string, message: string, options: ProcessO
     where: { id: assetId },
     data: restore ? { status: "READY", errorMessage: RERUN_KEPT_EARLIER_NOTE } : { status: "ERROR", errorMessage: message },
   });
+  await alertAssetProblem(assetId, restore ? "A re-run didn't finish" : "A recording failed to process", message);
 }
 
 async function runPipeline(
   assetId: string,
-  transcribe: () => Promise<{ text: string; segments: unknown }>,
+  transcribe: () => Promise<{ text: string; segments: unknown; remoteId: string; audioSeconds: number | null }>,
   options: ProcessOptions,
   state: RunState,
 ) {
   try {
-    const { text, segments } = await transcribe();
+    const { text, segments, remoteId, audioSeconds } = await transcribe();
 
     // The new transcript has arrived: only now are the earlier best moments and posts cleared away (they'd be
     // stale or duplicated), in the same step that stores the new transcript.
@@ -78,6 +81,10 @@ async function runPipeline(
       prisma.asset.update({ where: { id: assetId }, data: { speakerNames: Prisma.DbNull } }),
     ]);
     state.replaced = true;
+
+    // Our copy of the text is saved, so the transcription service no longer needs its copy: delete it now.
+    await deleteRemoteTranscript(remoteId);
+    if (audioSeconds !== null) await recordUsage(assetId, { kind: "transcription", model: "assemblyai", audioSeconds });
 
     // Nothing was said (or nothing could be recognized): there is nothing to find quotes in, so skip the AI steps.
     if (text.trim().length === 0) {
@@ -127,6 +134,7 @@ export async function downloadAndProcessTranscription(
           ? { status: "READY", errorMessage: RERUN_KEPT_EARLIER_NOTE }
           : { status: "ERROR", errorMessage: PROCESSING_TIMEOUT_MESSAGE },
       })
+      .then(() => alertAssetProblem(assetId, "A recording ran out of processing time", restore ? RERUN_KEPT_EARLIER_NOTE : PROCESSING_TIMEOUT_MESSAGE))
       .catch((err) => console.error(`Couldn't record the processing timeout for asset ${assetId}:`, err));
   }, SELF_DEADLINE_MS);
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parseStructured } from "./run";
 import { quoteTiming, turnsFrom, verifyQuote, type QuoteVerification } from "./verify";
+import type { AiUsage } from "@/lib/usage/record";
 import { AP_STYLE_INSTRUCTION } from "./style";
 
 const QuotesSchema = z.object({
@@ -51,10 +52,10 @@ function formatTranscript(segments: unknown): string | null {
 export async function flagQuotes(
   transcriptText: string,
   segments: unknown,
-): Promise<FlaggedQuoteResult[]> {
+): Promise<{ quotes: FlaggedQuoteResult[]; usage: AiUsage }> {
   const transcript = formatTranscript(segments) ?? transcriptText;
 
-  const parsed = await parseStructured({
+  const { parsed, usage } = await parseStructured({
     system: `You are a news editor identifying quotable moments in an interview transcript for a reporter to use in social media posts and articles. ${AP_STYLE_INSTRUCTION}`,
     prompt: `Read this speaker-labeled, timestamped interview transcript and flag the quotable moments: compelling, self-contained statements worth pulling out on their own. Let the transcript's actual content decide how many — a short or thin clip may only have one or two genuinely quotable moments, and a rich interview may have six or more. Do not pad the list with weak filler just to reach a target count.\n\nFor each, give the exact quote text (verbatim from the transcript), the timestamp in seconds where it starts, a brief reason it's worth flagging, and an engagementScore (0-100) for how likely it is to resonate with a social media audience — be honest and use the full range; most transcripts will have at most one or two quotes above 80.\n\nTranscript:\n${transcript}`,
     schema: QuotesSchema,
@@ -80,5 +81,5 @@ export async function flagQuotes(
       endSeconds: timing ? timing.end : null,
     });
   }
-  return results;
+  return { quotes: results, usage };
 }

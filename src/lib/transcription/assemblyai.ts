@@ -38,6 +38,10 @@ export function speakerHintFor(durationSeconds: number | null, choice?: SpeakerC
 export interface TranscriptionResult {
   text: string;
   segments: unknown;
+  /** The transcription service's own id for this job, so its copy can be deleted once ours is saved. */
+  remoteId: string;
+  /** Length of the audio in seconds as the service measured it (what it bills on); null if it didn't say. */
+  audioSeconds: number | null;
 }
 
 /**
@@ -55,12 +59,15 @@ export async function transcribeBuffer(buffer: Buffer, durationSeconds: number |
   });
 
   if (transcript.status === "error") {
+    await deleteRemoteTranscript(transcript.id);
     throw new Error(transcript.error ?? "AssemblyAI transcription failed");
   }
 
   return {
     text: transcript.text ?? "",
     segments: transcript.utterances ?? [],
+    remoteId: transcript.id,
+    audioSeconds: typeof transcript.audio_duration === "number" ? transcript.audio_duration : null,
   };
 }
 
@@ -90,12 +97,15 @@ export async function transcribeStream(
   });
 
   if (transcript.status === "error") {
+    await deleteRemoteTranscript(transcript.id);
     throw new Error(transcript.error ?? "AssemblyAI transcription failed");
   }
 
   return {
     text: transcript.text ?? "",
     segments: transcript.utterances ?? [],
+    remoteId: transcript.id,
+    audioSeconds: typeof transcript.audio_duration === "number" ? transcript.audio_duration : null,
   };
 }
 
@@ -128,5 +138,22 @@ function uploadStreamToAssemblyAI(stream: Readable, apiKey: string): Promise<str
     stream.on("error", (err) => req.destroy(err));
     stream.pipe(req);
   });
+}
+
+/**
+ * Asks the transcription service to delete its copy of a job (the transcript and the audio it was
+ * given). Called as soon as our own copy of the text is saved, so the vendor keeps nothing of a
+ * customer's recording beyond the moment it's needed — instead of its default retention of 24-48
+ * hours for uploaded audio and 30 days for transcripts. Best effort: a failure here is logged and
+ * never fails the recording (the vendor's own expiry still applies). Its delete behaviour for uploaded
+ * audio should be confirmed with the vendor in writing before it is promised to customers.
+ */
+export async function deleteRemoteTranscript(remoteId: string): Promise<void> {
+  try {
+    const client = new AssemblyAI({ apiKey: requireEnv("ASSEMBLYAI_API_KEY") });
+    await client.transcripts.delete(remoteId);
+  } catch (err) {
+    console.error(`Couldn't delete the transcription service's copy (${remoteId}):`, err);
+  }
 }
 

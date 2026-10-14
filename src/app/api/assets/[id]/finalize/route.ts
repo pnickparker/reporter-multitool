@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { finalizeUpload } from "@/lib/assets/create-asset";
+import { alertAssetProblem } from "@/lib/alerts";
+import { errorMessage } from "@/lib/error-message";
 
 /**
  * Vercel's default function duration is far too short for the background
@@ -34,6 +36,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       ? Math.round(durationSeconds)
       : null;
 
-  const updated = await finalizeUpload(assetId, driveFileId, user, clientDuration);
-  return NextResponse.json(updated);
+  try {
+    const updated = await finalizeUpload(assetId, driveFileId, user, clientDuration);
+    return NextResponse.json(updated);
+  } catch (err) {
+    // The file reached Drive but the app couldn't record it as finished — Nick should hear about that.
+    await alertAssetProblem(assetId, "A finished upload couldn't be saved", errorMessage(err));
+    throw err;
+  }
 }

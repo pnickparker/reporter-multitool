@@ -120,3 +120,34 @@ model GeneratedSocialPost {
   quoteCheck String?
   createdAt DateTime      @default(now())
 }
+
+/// What each processing step cost, recorded per recording so pricing can rest on measured numbers. Holds no recording content.
+/// Deliberately has no link to Asset: the cost was incurred even if the recording is later deleted.
+model UsageRecord {
+  id           String   @id @default(cuid())
+  assetId      String
+  /// "transcription" | "quotes" | "posts"
+  kind         String
+  model        String
+  inputTokens  Int?
+  outputTokens Int?
+  audioSeconds Float?
+  /// Estimated at the list prices in src/lib/usage/pricing.ts when the step ran.
+  costUsd      Float
+  createdAt    DateTime @default(now())
+
+  @@index([assetId])
+  @@index([createdAt])
+}
+
+/// A record of alert emails (about recordings that failed), so the same problem isn't sent twice and a burst can't flood an inbox.
+model AlertLog {
+  id        String   @id @default(cuid())
+  key       String
+  subject   String
+  delivered Boolean
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
