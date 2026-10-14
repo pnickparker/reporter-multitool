@@ -158,3 +158,53 @@ Nick wants the app to handle podcast-length interviews (40+ minutes and up). He'
 | **Speaker naming, re-run with a speaker count, honest progress, safe resumable uploads** | **Built** — they make the core path trustworthy | — |
 | Accepting long audio/video from other sources | **Built** — the "works with your other tools" promise | Podcast tools, Rode, voice recorders, other cameras |
 
+## Pricing and go-to-market prep (started 2026-10-14)
+
+Nick: "I'm really at a loss to figure out how to price this" — partly because storage and AI-usage costs were unknown. Below is what is now *measured*, then the two question lists. Prices are as published in October 2026 and change; re-check before quoting anyone. Costs are small samples — treat as ranges.
+
+### What it actually costs to process a recording (measured 2026-10-14)
+
+**Transcription (AssemblyAI):** about **$0.15–0.21 per audio hour** depending on model, plus **$0.02/hr** for speaker labels (https://www.assemblyai.com/pricing.md) — roughly **$0.17–0.23/hr, or about 0.3–0.4 cents a minute**. Transcription speed is not a cost issue (a 35-minute interview took 42 seconds).
+
+**AI steps (Claude):** two calls per recording — find and score the quotes, then write post drafts for the strong ones (the full transcript is sent both times). **The app currently uses `claude-opus-5` ($5 in / $25 out per million tokens) with no limit on thinking effort, and thinking tokens bill as output** — output tokens are most of the cost. Measured on real transcripts (token counts from the API's own usage report):
+| Recording | Opus 5 (current) | Sonnet 5.5 ($2 / $10) | Haiku 5.5 ($0.10 / $0.50) |
+|---|---|---|---|
+| ~1-minute clip, 269 words (one AI call; no quote scored 70+) | ~$0.022 | ~$0.007 | ~$0.0005 |
+| ~14-minute interview, 2,108 words (both calls) | ~$0.13–0.15 | ~$0.044–0.050 | ~$0.001–0.003 |
+Run-to-run variation is real (the same transcript gave 8 or 9 quotes and 4 or 5 strong ones on Opus). Cheaper models also *behaved differently* — Haiku flagged fewer quotes and scored fewer as strong — so **a cheaper model needs a quality check on real transcripts (an eval against what Michael and Cody think is good) before switching.** Michael independently agreed with the current scores, so the current behaviour is a baseline to match.
+
+**Cost to serve, per hour of recording (transcription + AI):** about **$0.80 on Opus 5**, **$0.40 on Sonnet 5.5**, **$0.20 on Haiku 5.5** (under cheap models, transcription is the main cost). Worked scenarios:
+- A reporter with **15 hours of recordings a month** (e.g., 30 half-hour interviews): about **$12 on Opus, $6 on Sonnet, $3 on Haiku**.
+- **Tester-style use** (seven 1–2 minute clips from an event): well under a quarter in total.
+- A **100-minute podcast** (18,000 words): roughly **$0.80** on Opus, about half that on Sonnet.
+The brief's early idea of **$15–25 per reporter per month** works with Sonnet or Haiku at normal use (70–90%+ gross margin), and is thin on Opus at heavy use. **The cheapest big lever isn't the price — it's the model and the thinking setting.** Other levers (not yet measured): setting a lower thinking effort; sending the transcript once instead of twice (or caching it); skipping post drafts unless asked.
+
+**Storage and hosting (approximate; verify):**
+- **Today every recording sits in Nick's own Google Drive** (a paid 2 TB plan, about $10/month) — fine for testing, but **it cannot work for multiple customers**: each customer needs either **their own Drive connected** (no storage cost to us, but needs Google's app verification — see "Before a paying customer") or **storage we run** (object storage runs very roughly 1.5–2.5 cents per GB-month, so audio is pennies and **video is the real cost**: about 1–4 GB per hour of video). Offering hosted storage means choosing a **retention promise** (e.g., 90 days) and a deletion policy.
+- Recordings also pass **through the server** (uploads in pieces, playback streamed), which uses hosting bandwidth; negligible at today's scale, worth re-checking with heavy video.
+- **Fixed costs** are modest: Vercel Pro (about $20/month), the database (free tier now; roughly $25/month on a paid plan), domain, and — only if the app is wrapped for the stores — Apple ($99/year) and Google ($25 once).
+- **Not measured yet:** real customer storage growth, bandwidth at scale, support time.
+
+### Pricing shapes to choose between (not decided)
+1. **Flat per newsroom per month** with a generous included amount (simplest to sell and to hand-onboard; fits "a few newsrooms"); overage by the hour.
+2. **Per reporter per month** (the familiar tool model; the brief's $15–25 idea).
+3. **Credits / usage-based** (pay for hours processed — fairest, but unpredictable bills scare small newsrooms).
+4. **Tiers by recording length and size** (the existing per-tier limit constant was built for this: short-clip tier, long-form tier).
+Whatever the shape, an **anchor** is what prospects pay today for Otter, Trint, Descript and similar — look those prices up, and ask prospects what they pay and for what.
+
+### Questions to ASK people (prospects, and the trade-association and consultant contacts)
+*About their work:* How many interviews a week, how long, recorded on what? What happens to a recording today, step by step — who transcribes, how long does it take, where does it go? Which tools do you pay for now, and how much? What do you hate about them? Do you record video, audio, or both? Do you post quotes on social — who writes those, how long does it take?
+*About the decision:* Who decides and who pays — the newsroom budget or the reporter personally? Is a subscription approved by the owner, an editor, or the reporter? Monthly or annual? What would you need to see in a 30-day trial to keep it? What would make you cancel?
+*About price:* At what price would this be so cheap you'd doubt it? A bargain? Getting expensive? Too expensive? (ask all four.) Would you rather pay per reporter, per newsroom, or per hour? What do you pay for transcription now per month?
+*About trust:* What are your rules about recording consent and protecting sources? Where is it acceptable for recordings to be stored, and for how long? Would you need it to *not* train on your recordings? Do you need your own account and your own storage? Would a human always have to approve a quote before it's used?
+*About the relationship:* Would you try it free for a month in return for honest feedback and, if it works, a testimonial? Who else should I talk to? Would you introduce me?
+
+### Questions Nick has to ANSWER (his, and the product's)
+*Business shape:* Who is the first customer — freelancers, a small independent newsroom, a chain? Is the goal **recurring revenue**, or **a few paying newsrooms as proof for a pitch** (the exit thinking above)? How many paying users, at what total, would count as "enough" to move to the associations step? How many hours a week can go to support and onboarding?
+*Pricing and terms:* What minimum margin is acceptable? A free pilot — how long, for whom, in exchange for what? Discount for early references? Refunds? What happens when someone goes over their limit?
+*Data and trust (these block the first paying customer):* Whose storage — theirs or ours? How long do you keep recordings and transcripts, and what happens when someone cancels? What do you promise about training on their data (check the vendors' current terms first)? Who is responsible for recording consent? Do you need terms of service, a privacy policy and contract templates (see "Business setup") and an LLC and insurance before the first dollar?
+*Product:* Reporters or newsrooms — accounts per person or per organization? Real data separation is still the gate. Which AI model do we run, and is the quality good enough to switch down? Which limits are in the product (length and size, minutes per month)?
+*Operations:* Who answers when it breaks on a Thursday night? What response time do you promise?
+*Positioning:* In one sentence, what is it? (Draft: *bring us whatever you recorded, on whatever you recorded it, and we turn it into a transcript, ranked quotes and ready-to-use posts — safely.*) What's the proof (real usage, how safe uploads are, speed)? What are the honest limits (speaker labels are a first draft; size limits; no editing the transcript)? What won't you build (see "Product focus")? Is the name settled and cleared before the association step?
+*The BLOX question:* What is the trigger for telling the friend and the direct contact, and what will you say? (See the go-to-market sequence above.)
+
