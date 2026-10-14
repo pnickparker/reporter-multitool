@@ -145,6 +145,8 @@ Nick wants the app to handle podcast-length interviews (40+ minutes and up). He'
 
 **The test for a new idea (suggested):** (1) Does it make the transcript → quotes → share path better for a working reporter? (2) Could another tool already do it well, with us accepting its output? (3) Did real users ask — more than one tester, not just a "wouldn't that be cool"? (4) Does it risk the never-lose-a-recording rule? If it fails (1) or (2), the answer is usually "use the other tool, then upload it here."
 
+**Polish counts (Nick, 2026-10-14):** the product is judged on how it *feels*, not only on what it does — a player that starts early and lurches back, or a button that does something slightly different from what it implies, makes the whole app feel cheap. Every interaction a reporter touches (tap a quote, share, retry) should do exactly what it says, with honest feedback while it works. Test on a real phone, with a real recording, before calling something done.
+
 **How that has already played out (good material for the pitch):**
 | Idea | Decision | Use instead |
 |---|---|---|

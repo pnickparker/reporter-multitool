@@ -14,6 +14,8 @@ interface MediaContextValue {
 /** Start a little before the quote and stop a little after it, so the first and last words aren't clipped. */
 const LEAD_IN_SECONDS = 0.4;
 const TAIL_SECONDS = 0.6;
+/** How long to wait for a jump to land before playing anyway. */
+const SEEK_WAIT_LIMIT_MS = 12000;
 
 const MediaContext = createContext<MediaContextValue | null>(null);
 
@@ -26,6 +28,7 @@ export function MediaScope({ hasMedia, children }: { hasMedia: boolean; children
   const mediaRef = useRef<HTMLMediaElement | null>(null);
   const stopAtRef = useRef<number | null>(null);
   const programmaticSeekRef = useRef(false);
+  const seekTokenRef = useRef(0);
   const cleanupRef = useRef<(() => void) | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -81,12 +84,39 @@ export function MediaScope({ hasMedia, children }: { hasMedia: boolean; children
       seek: (seconds, endSeconds) => {
         const el = mediaRef.current;
         if (!el) return;
-        stopAtRef.current = typeof endSeconds === "number" && endSeconds > seconds ? endSeconds + TAIL_SECONDS : null;
-        programmaticSeekRef.current = true;
+        // Stop whatever is playing, and make a newer tap win over an older one still waiting.
+        el.pause();
+        const token = ++seekTokenRef.current;
+        stopAtRef.current = null;
         setLoading(true);
-        el.currentTime = Math.max(0, seconds - LEAD_IN_SECONDS);
-        // Called from a tap, so browsers allow playback to start.
-        void el.play().catch(() => setLoading(false));
+
+        const target = Math.max(0, seconds - LEAD_IN_SECONDS);
+        const startPlayback = () => {
+          if (token !== seekTokenRef.current) return;
+          stopAtRef.current = typeof endSeconds === "number" && endSeconds > seconds ? endSeconds + TAIL_SECONDS : null;
+          // Called from a tap, so browsers allow playback to start.
+          void el.play().catch(() => setLoading(false));
+        };
+
+        // Playing before the jump has landed makes a big video start from where it was, then lurch to the quote.
+        // So: jump, wait until the player says it got there, and only then play.
+        if (Math.abs(el.currentTime - target) < 0.05 && el.readyState >= 3) {
+          startPlayback();
+          return;
+        }
+        programmaticSeekRef.current = true;
+        const waiter = { fallback: undefined as ReturnType<typeof setTimeout> | undefined };
+        const onSeeked = () => {
+          clearTimeout(waiter.fallback);
+          startPlayback();
+        };
+        el.addEventListener("seeked", onSeeked, { once: true });
+        // If the jump never reports back (a stalled connection), try playing anyway rather than hang.
+        waiter.fallback = setTimeout(() => {
+          el.removeEventListener("seeked", onSeeked);
+          startPlayback();
+        }, SEEK_WAIT_LIMIT_MS);
+        el.currentTime = target;
       },
     }),
     [hasMedia, register, loading],
