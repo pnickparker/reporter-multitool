@@ -115,7 +115,7 @@ Nick had mixed the two up as the project moved along (he'd understood it as "tes
 
 **Decision (unchanged, restated): stay web-first, wrap later, decide on evidence from testers** — not in advance and not at "launch time" by default. The camera-roll finding above is a reason to wrap *eventually*, not to switch now: for an irreplaceable interview the safe habit meanwhile is to record with the phone's own Camera app and then use Upload.
 
-**Signals that should trigger building a wrapped TestFlight/beta app:** testers lose or stall uploads in the field despite the safeguards; testers ask to send videos into the app from Photos; a customer or association asks for "an app in the store"; push notifications become wanted. Not a trigger: the wrapper being "more professional."
+**Signals that should trigger building a wrapped TestFlight/beta app** (so far: a tester question on 2026-10-14 about recording with both cameras at once, as Rode Capture does — only a native app can do that; background audio recording and camera-roll saving are the others): testers lose or stall uploads in the field despite the safeguards; testers ask to send videos into the app from Photos; a customer or association asks for "an app in the store"; push notifications become wanted. Not a trigger: the wrapper being "more professional."
 
 **Not fixed by wrapping:** per-customer accounts and data separation, pricing, and the storage question — those are the real gates to paying users either way (see "Before a paying customer can use it").
 
