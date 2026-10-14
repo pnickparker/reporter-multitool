@@ -22,7 +22,7 @@ These notes aren't legal advice. Confirm the Anthropic, Google, AssemblyAI and V
 
 - [ ] **Real accounts.** `getCurrentUser()` is still a placeholder. Each customer's data must be strictly separated from every other customer's.
 - [ ] **Encrypt the Drive OAuth tokens.** They're stored as plain text in `GoogleDriveConnection`.
-- [ ] **Google OAuth verification.** Letting the public connect their Drive needs Google's review. Broad Drive permissions can require a paid third-party security assessment (weeks of lead time). The `drive.file` permission (only files the app creates) keeps this much lighter. Decide the permission early.
+- [ ] **Google OAuth verification.** Letting the public connect their Drive needs Google's review. *(Update 2026-10-14: we only use the `drive.file` scope, which Google lists as non-sensitive — basic verification, not the paid security assessment the next sentence describes. See STORAGE_DESIGN.md.)* Broad Drive permissions can require a paid third-party security assessment (weeks of lead time). The `drive.file` permission (only files the app creates) keeps this much lighter. Decide the permission early.
 - [ ] **Cost per user.** Each upload costs AssemblyAI minutes plus Claude calls. Work out the cost of a typical 30-minute interview before setting prices (the brief suggested $15–25/mo), and put limits on each tier.
 - [ ] **Privacy policy lists processors.** AssemblyAI, Anthropic, Google, Vercel and Supabase. Reporters will ask whether recordings of sources are used for training. Neither vendor trains on API data by default, but confirm before promising it.
 - [ ] **Recording consent.** Terms should make consent the user's responsibility. Missouri only needs one party's consent, but some states need everyone's.
