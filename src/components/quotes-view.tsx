@@ -7,6 +7,8 @@ interface Quote {
   text: string;
   timestamp: number;
   reason: string;
+  /** "exact" or "adjusted" (see lib/ai/verify.ts); absent on quotes saved before the check existed. */
+  verification?: string | null;
   engagementScore: number;
 }
 
@@ -88,6 +90,11 @@ export function QuotesView({ quotes }: { quotes: Quote[] }) {
                 )}
               </div>
               <p className="mt-2 text-[13px] leading-[19px] text-muted">{q.reason}</p>
+              {q.verification === "adjusted" && (
+                <p className="mt-2 text-[12px] leading-4 text-butter">
+                  Adjusted to match the transcript word for word (the AI had skipped some words).
+                </p>
+              )}
               <TextActions text={q.text} label="quote" />
             </li>
           );

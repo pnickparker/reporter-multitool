@@ -3,6 +3,7 @@ import { flagQuotes } from "./quotes";
 import { generateSocialPosts } from "./social-posts";
 import { errorMessage } from "@/lib/error-message";
 import { SOCIAL_POST_SCORE_THRESHOLD } from "./scoring";
+import { checkPostQuotes, turnsFrom } from "./verify";
 
 /**
  * Runs after transcription completes (see transcription/process.ts) — quote
@@ -27,6 +28,7 @@ export async function processAiPipeline(assetId: string) {
             timestamp: q.timestampSeconds,
             reason: q.reason,
             engagementScore: q.engagementScore,
+            verification: q.verification,
           },
         }),
       ),
@@ -41,12 +43,15 @@ export async function processAiPipeline(assetId: string) {
       postWorthyQuotes.map((q) => ({ id: q.id, text: q.text, reason: q.reason })),
     );
 
+    // Any wording a draft puts in quotation marks is checked against the transcript too.
+    const turns = turnsFrom(asset.transcript.segments, asset.transcript.text);
     await prisma.generatedSocialPost.createMany({
       data: posts.map((p) => ({
         assetId,
         quoteId: p.quoteId,
         platform: p.platform,
         copy: p.copy,
+        quoteCheck: checkPostQuotes(p.copy, turns),
       })),
     });
 

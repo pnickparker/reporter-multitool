@@ -100,6 +100,8 @@ model FlaggedQuote {
   text            String
   reason          String
   engagementScore Int    @default(0)
+  /// How the quote was checked against the transcript: "exact" (the words as spoken) or "adjusted" (the AI's version skipped words, so the exact transcript wording was used instead). Null on quotes saved before this check existed.
+  verification    String?
 
   socialPosts GeneratedSocialPost[]
 }
@@ -112,5 +114,7 @@ model GeneratedSocialPost {
   quote     FlaggedQuote? @relation(fields: [quoteId], references: [id])
   platform  String
   copy      String
+  /// "ok" when every quoted passage in the draft appears in the transcript, "check" when one doesn't (the reporter should look before posting). Null when the draft quotes nothing or predates this check.
+  quoteCheck String?
   createdAt DateTime      @default(now())
 }
