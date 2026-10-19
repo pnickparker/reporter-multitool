@@ -76,6 +76,9 @@ Laws vary by state and situation. Some require everyone's consent; others only o
 
 ## Things that go wrong
 
+**My video stopped by itself while I was recording.**
+Usually the phone locked its screen. The big circle asks the phone to keep the screen on while you record, but **Low Power Mode** can override that and lock the screen after 30 seconds. Turn it off before you shoot (if Auto-Lock is greyed out in Settings → Display & Brightness, it's on). A call or alarm can also end a recording; Do Not Disturb or a Focus keeps those out. If a video stops short, keep the clip instead of tapping Retake. What was recorded is still there.
+
 **My upload says "Try again."**
 Tap it. It picks up where it stopped. Don't re-record.
 

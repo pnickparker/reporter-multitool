@@ -30,6 +30,8 @@ On the Home screen you have three ways to bring something in.
 
 **Know this about the camera:** pictures and video taken through the big circle go to the app, **not** to your phone's Photos. The app keeps a copy on your phone until the upload finishes. If you want one in Photos too, use **Save to phone** (see below).
 
+**Turn off Low Power Mode before you shoot.** The camera keeps your screen awake while you record, so you can hold the phone still and point it without the screen locking. Low Power Mode can override that: it makes the phone lock the screen after 30 seconds and may stop the app from keeping it awake, which can end a video partway through. (If **Auto-Lock** is greyed out in Settings → Display & Brightness, Low Power Mode is on.) If a video does stop short, keep it rather than tapping Retake. What was recorded is still there.
+
 Everything you add goes into a **project** — a folder for one story or event. Quick capture makes one for you; you can rename it any time by tapping its title.
 
 ## 3. While it uploads
@@ -108,6 +110,7 @@ Laws about recording conversations differ by state and situation. Some places re
 
 | What you see | What it means | What to do |
 |---|---|---|
+| A video stopped on its own after about 30 seconds | The phone locked its screen. Most often Low Power Mode is on. | Keep the clip (don't tap Retake). Turn off Low Power Mode, or set Auto-Lock to 5 Minutes or Never, then record the rest. |
 | **Try again** | An upload stopped partway. | Tap it. Don't re-record. |
 | **Upload didn't finish** | An old upload was left half-done. | Tap **Try again**, or remove it if you don't need it. |
 | **Saved, not transcribed** | The file is big; it was saved but not processed automatically. | **Transcribe now.** |
