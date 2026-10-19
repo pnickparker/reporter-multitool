@@ -1,5 +1,6 @@
-import { asUtterances, speakerLabel, speakerNamesOf, speakersIn } from "@/lib/transcript-format";
+import { asUtterances, speakerLabel, speakerNamesOf, speakersIn, transcriptPlainText } from "@/lib/transcript-format";
 import { SpeakerNames } from "@/components/speaker-names";
+import { TextActions } from "@/components/text-actions";
 
 /**
  * Shows speaker-labeled turns when diarization data is available, falling
@@ -50,12 +51,15 @@ export function TranscriptView({
     );
 
   const naming = assetId && speakers.length > 0 ? <SpeakerNames assetId={assetId} speakers={speakers} names={names} /> : null;
+  // Above the text, so a long transcript doesn't have to be scrolled to the end to copy it.
+  const copyButton = <TextActions text={transcriptPlainText(text, utterances, names)} label="transcript" />;
 
   if (!collapsible) {
     return (
       <div className="mt-3 leading-relaxed text-ink/90">
         {naming}
-        <div className={naming ? "mt-3" : ""}>{body}</div>
+        {copyButton}
+        <div className="mt-3">{body}</div>
       </div>
     );
   }
@@ -68,7 +72,8 @@ export function TranscriptView({
       </summary>
       <div className="mt-1 leading-relaxed text-ink/90">
         {naming}
-        <div className={naming ? "mt-3" : ""}>{body}</div>
+        {copyButton}
+        <div className="mt-3">{body}</div>
       </div>
     </details>
   );

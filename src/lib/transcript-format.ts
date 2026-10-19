@@ -32,6 +32,12 @@ export function speakerLabel(speaker: string | undefined, names: Record<string, 
   return names[key] ?? `Speaker ${key}`;
 }
 
+/** The transcript as plain text for pasting elsewhere: "Name: words" per turn with a blank line between, or the flat text when there are no speaker turns. */
+export function transcriptPlainText(text: string, utterances: Utterance[], names: Record<string, string>): string {
+  if (utterances.length === 0) return text;
+  return utterances.map((u) => `${speakerLabel(u.speaker, names)}: ${u.text}`).join("\n\n");
+}
+
 /** The distinct speakers in a transcript, in the order they first speak. */
 export function speakersIn(utterances: Utterance[]): string[] {
   const seen: string[] = [];
