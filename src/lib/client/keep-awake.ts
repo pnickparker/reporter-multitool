@@ -1,6 +1,7 @@
 /**
- * Keeps the phone's screen on while an upload runs — a locked phone suspends
- * the page and stalls the upload. The screen-wake request is dropped by the
+ * Keeps the phone's screen on while an upload runs (a locked phone suspends
+ * the page and stalls the upload) or while the camera is open (auto-lock can
+ * end a recording mid-clip). The screen-wake request is dropped by the
  * browser whenever the page is hidden, so it is asked for again on return.
  * Does nothing where the browser doesn't offer it. Returns a function that lets
  * the screen sleep again.

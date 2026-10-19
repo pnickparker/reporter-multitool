@@ -27,6 +27,9 @@ interface WaitingRecording {
   error: string | null;
 }
 
+/** Safety cap on holding the screen awake for the camera, in case the phone never reports the camera closing. */
+const CAMERA_AWAKE_MAX_MS = 20 * 60 * 1000;
+
 /** Longest to wait for the phone to store the backup copy before uploading anyway — a stuck write must not block the news. */
 const BACKUP_WAIT_MS = 30_000;
 
@@ -100,6 +103,36 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
   const [waiting, setWaiting] = useState<WaitingRecording[]>([]);
   // The latest Drive session per recording, kept outside state so a resume always sees the newest one.
   const sessionsRef = useRef(new Map<string, UploadSession>());
+  // Holds the screen on while the camera is open, so the phone's auto-lock can't stop a recording mid-clip.
+  const cameraAwakeRef = useRef<{ release: () => void; timer: ReturnType<typeof setTimeout> } | null>(null);
+
+  function releaseCameraAwake() {
+    const held = cameraAwakeRef.current;
+    if (!held) return;
+    cameraAwakeRef.current = null;
+    clearTimeout(held.timer);
+    held.release();
+  }
+
+  function openCamera() {
+    releaseCameraAwake();
+    // Asked for inside the tap itself — browsers only grant a screen wake lock to a direct user action.
+    const release = keepScreenAwake();
+    cameraAwakeRef.current = { release, timer: setTimeout(releaseCameraAwake, CAMERA_AWAKE_MAX_MS) };
+    cameraRef.current?.click();
+  }
+
+  // Backing out of the camera without taking anything fires "cancel" on the input (it doesn't bubble, hence capture).
+  useEffect(() => {
+    const onCancel = (e: Event) => {
+      if (e.target === cameraRef.current) releaseCameraAwake();
+    };
+    document.addEventListener("cancel", onCancel, true);
+    return () => {
+      document.removeEventListener("cancel", onCancel, true);
+      releaseCameraAwake();
+    };
+  }, []);
 
   // Anything left over from an earlier visit (closed tab, reload, crash) shows up here, ready to resume.
   useEffect(() => {
@@ -142,6 +175,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
     setError(null);
     setWaiting((all) => all.map((w) => (w.id === item.id ? { ...w, error: null } : w)));
     const letScreenSleep = keepScreenAwake();
+    releaseCameraAwake();
     try {
       const { projectId } = await uploadFile(
         item.file,
@@ -190,6 +224,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
   function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) void startFile(file);
+    else releaseCameraAwake();
   }
 
   async function onSaveNote() {
@@ -365,7 +400,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
           </div>
           <button
             type="button"
-            onClick={() => cameraRef.current?.click()}
+            onClick={openCamera}
             disabled={busy}
             aria-label="Open the camera"
             className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full bg-white disabled:opacity-60"
@@ -411,7 +446,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => cameraRef.current?.click()}
+          onClick={openCamera}
           disabled={busy}
           className="btn-primary gap-2"
         >
