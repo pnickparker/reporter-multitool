@@ -21,6 +21,10 @@ function legacyCopy(text: string): boolean {
   return ok;
 }
 
+/** Full 44px thumb-sized on touch screens; slimmer when the pointer is a mouse. */
+const BUTTON_CLASS =
+  "inline-flex min-h-11 items-center rounded-full bg-line px-5 text-sm font-medium text-ink hover:brightness-125 pointer-fine:min-h-8 pointer-fine:px-4 pointer-fine:text-[13px]";
+
 /** Copy — and, where the phone supports it, Share — a piece of text like a flagged quote or a drafted post. */
 export function TextActions({ text, label }: { text: string; label: string }) {
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -51,21 +55,11 @@ export function TextActions({ text, label }: { text: string; label: string }) {
 
   return (
     <div className="mt-3 flex gap-2">
-      <button
-        type="button"
-        onClick={copy}
-        aria-label={`Copy ${label}`}
-        className="inline-flex min-h-11 items-center rounded-full bg-line px-5 text-sm font-medium text-ink hover:brightness-125"
-      >
+      <button type="button" onClick={copy} aria-label={`Copy ${label}`} className={BUTTON_CLASS}>
         {feedback ?? "Copy"}
       </button>
       {canShare && (
-        <button
-          type="button"
-          onClick={share}
-          aria-label={`Share ${label}`}
-          className="inline-flex min-h-11 items-center rounded-full bg-line px-5 text-sm font-medium text-ink hover:brightness-125"
-        >
+        <button type="button" onClick={share} aria-label={`Share ${label}`} className={BUTTON_CLASS}>
           Share
         </button>
       )}
