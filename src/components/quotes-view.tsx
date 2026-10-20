@@ -22,6 +22,12 @@ function formatTimestamp(seconds: number): string {
   return `${m}:${s}`;
 }
 
+/** "1:00–1:14" for a quote with a known end (the end rounded up so the range covers the whole quote); just the start for older quotes without one. */
+function formatRange(start: number, end?: number | null): string {
+  if (typeof end !== "number" || end <= start) return formatTimestamp(start);
+  return `${formatTimestamp(start)}–${formatTimestamp(Math.ceil(end))}`;
+}
+
 const RING_RADIUS = 20;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
@@ -80,7 +86,7 @@ export function QuotesView({ quotes }: { quotes: Quote[] }) {
                 <ScoreRing score={q.engagementScore} strong={strong} />
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-                <SeekChip seconds={q.timestamp} endSeconds={q.endTimestamp} label={formatTimestamp(q.timestamp)} />
+                <SeekChip seconds={q.timestamp} endSeconds={q.endTimestamp} label={formatRange(q.timestamp, q.endTimestamp)} />
                 {strong && <span className="text-xs font-bold text-mint">Post drafts generated</span>}
                 {q.engagementScore >= BUTTER_SCORE_THRESHOLD && (
                   <span
