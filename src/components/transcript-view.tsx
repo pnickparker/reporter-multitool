@@ -63,6 +63,7 @@ export function TranscriptView({
           title="Captions"
           mimeType="application/x-subrip"
           fallbackName="captions.srt"
+          asFile
         />
       )}
     </div>

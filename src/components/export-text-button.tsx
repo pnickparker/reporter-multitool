@@ -20,6 +20,7 @@ export function ExportTextButton({
   title,
   mimeType = "text/markdown",
   fallbackName = "export.md",
+  asFile = false,
 }: {
   /** Endpoint that returns the markdown, e.g. /api/assets/<id>/export. */
   href: string;
@@ -30,9 +31,16 @@ export function ExportTextButton({
   mimeType?: string;
   /** File name to use if the endpoint doesn't send one. */
   fallbackName?: string;
+  /**
+   * For output that has to arrive as a real file (like captions for a video editor): never share it as pasted
+   * text. With a mouse it downloads straight away (desktop Safari and Chrome report share support, which would
+   * otherwise send the text to a share sheet); on a touch screen it shares the file itself, or downloads it
+   * where the phone can't share files.
+   */
+  asFile?: boolean;
 }) {
   const [canShare, setCanShare] = useState(false);
-  const [prepared, setPrepared] = useState<string | null>(null);
+  const [prepared, setPrepared] = useState<{ text: string; fileName: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +56,10 @@ export function ExportTextButton({
     const disposition = res.headers.get("Content-Disposition") ?? "";
     const fileName = disposition.match(/filename="([^"]+)"/)?.[1] ?? fallbackName;
     return { text: await res.text(), fileName };
+  }
+
+  function toFile(text: string, fileName: string) {
+    return new File([text], fileName, { type: mimeType });
   }
 
   function downloadHere(text: string, fileName: string) {
@@ -66,7 +78,9 @@ export function ExportTextButton({
     setError(null);
     try {
       const { text, fileName } = await fetchText();
-      if (canShare) setPrepared(text);
+      const touchScreen = !window.matchMedia("(pointer: fine)").matches;
+      const shareable = asFile ? touchScreen && !!navigator.canShare?.({ files: [toFile(text, fileName)] }) : canShare;
+      if (shareable) setPrepared({ text, fileName });
       else downloadHere(text, fileName);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't prepare the export");
@@ -78,7 +92,8 @@ export function ExportTextButton({
   function handleClick() {
     if (prepared !== null) {
       // Straight from the tap, nothing awaited first, so the phone still counts it as a real gesture.
-      navigator.share({ title, text: prepared }).catch((err) => {
+      const content = asFile ? { title, files: [toFile(prepared.text, prepared.fileName)] } : { title, text: prepared.text };
+      navigator.share(content).catch((err) => {
         if (err instanceof Error && err.name === "AbortError") return;
         setError("Couldn't open the share sheet");
       });
