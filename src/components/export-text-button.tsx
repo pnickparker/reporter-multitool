@@ -18,12 +18,18 @@ export function ExportTextButton({
   href,
   label = "Export text",
   title,
+  mimeType = "text/markdown",
+  fallbackName = "export.md",
 }: {
   /** Endpoint that returns the markdown, e.g. /api/assets/<id>/export. */
   href: string;
   label?: string;
   /** Used as the share sheet's subject line. */
   title: string;
+  /** Type of the downloaded file, when it isn't markdown. */
+  mimeType?: string;
+  /** File name to use if the endpoint doesn't send one. */
+  fallbackName?: string;
 }) {
   const [canShare, setCanShare] = useState(false);
   const [prepared, setPrepared] = useState<string | null>(null);
@@ -40,12 +46,12 @@ export function ExportTextButton({
     const res = await fetch(href);
     if (!res.ok) throw new Error("Couldn't prepare the export");
     const disposition = res.headers.get("Content-Disposition") ?? "";
-    const fileName = disposition.match(/filename="([^"]+)"/)?.[1] ?? "export.md";
+    const fileName = disposition.match(/filename="([^"]+)"/)?.[1] ?? fallbackName;
     return { text: await res.text(), fileName };
   }
 
   function downloadHere(text: string, fileName: string) {
-    const url = URL.createObjectURL(new Blob([text], { type: "text/markdown;charset=utf-8" }));
+    const url = URL.createObjectURL(new Blob([text], { type: `${mimeType};charset=utf-8` }));
     const link = document.createElement("a");
     link.href = url;
     link.download = fileName;

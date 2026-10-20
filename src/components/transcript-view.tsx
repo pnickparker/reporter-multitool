@@ -1,6 +1,7 @@
 import { asUtterances, speakerLabel, speakerNamesOf, speakersIn, transcriptPlainText } from "@/lib/transcript-format";
 import { SpeakerNames } from "@/components/speaker-names";
 import { TextActions } from "@/components/text-actions";
+import { ExportTextButton } from "@/components/export-text-button";
 
 /**
  * Shows speaker-labeled turns when diarization data is available, falling
@@ -52,7 +53,20 @@ export function TranscriptView({
 
   const naming = assetId && speakers.length > 0 ? <SpeakerNames assetId={assetId} speakers={speakers} names={names} /> : null;
   // Above the text, so a long transcript doesn't have to be scrolled to the end to copy it.
-  const copyButton = <TextActions text={transcriptPlainText(text, utterances, names)} label="transcript" />;
+  const copyButton = (
+    <div className="flex flex-wrap items-center gap-x-4">
+      <TextActions text={transcriptPlainText(text, utterances, names)} label="transcript" />
+      {assetId && utterances.length > 0 && (
+        <ExportTextButton
+          href={`/api/assets/${assetId}/captions`}
+          label="Captions (.srt)"
+          title="Captions"
+          mimeType="application/x-subrip"
+          fallbackName="captions.srt"
+        />
+      )}
+    </div>
+  );
 
   if (!collapsible) {
     return (
