@@ -94,6 +94,33 @@ Initial web search only. Most sources are brokers selling policies, so treat pri
 2. This app, once accounts and security are done.
 3. Sports tool.
 
+## Food projects: Coupé and the Family Menu Planner (added 2026-10-20)
+
+Nick's hunch (2026-10-20): there may be a product in the food work, even in a crowded market. It is "down the road" and sits behind the news tools. A one-page briefing for a conversation with a friend who has built and sold AI products is at https://claude.ai/artifact/Y6Akx85ti2Vw9m86QXtsFt (private until shared).
+
+**Family Menu Planner (working title).** Started after Nick's diabetes diagnosis, with a heart-healthy focus for the household. Its instructions live in a project file (`MealPlanning_ClaudeInstructions.rtf` in iCloud Drive); the source of truth is a Notion page, "Family Menu Planning", with a Recipe Box, a Weekly Menu Log and a Daily Log.
+- Builds a week of dinners, planned leftovers and a grocery list. Budget $150–200 a week. Three stores (Aldi, Hy-Vee, Costco). No protein repeated on back-to-back days. Variety so the family isn't eating the same things every week.
+- Inputs: guidance from the doctor and dietitian, the family's likes and dislikes, and a log of what worked and didn't. Clear hits graduate to the Recipe Box.
+- Fills Instacart carts from the chosen stores, guided by a table of catalog quirks. Walmart isn't available through Instacart.
+- **Built-in boundary:** it plans food only. No carb targets, medication guidance or interpretation of glucose or weight readings. That belongs to the care team. The Daily Log is Nick's own tracking and is never raised proactively.
+- The eating framework is kept separate from household preferences, so another household would swap the preferences and keep the rest.
+
+**Coupé (family recipe archive).** Differentiator is provenance: who created a recipe, whose binder it came from, how it passed between branches, plus a review workflow so non-technical relatives contribute without touching a database. The schema is family-agnostic by design. The platform notes are in the "Coupè - Generalized Platform Notes" Google Doc.
+
+**Competition (web search, 2026-10-20; app-store and directory listings, unverified):**
+- MealMatch AI claims weekly plans for health conditions including diabetes, budget-aware planning and Instacart delivery. It's the closest match found.
+- eMeals links meal plans to grocery delivery. Prospre and several AI planners add grocery lists.
+- Instacart runs a developer program (apply, partners are vetted, affiliate commissions) for recipe and shopping-list apps. Meal-planning apps were among its launch partners. Check current eligibility and terms at https://docs.instacart.com/developer_platform_api/.
+- Try the main competitors before calling this a product.
+
+**What would have to be true to sell the planner**
+- **Instacart access.** Cart filling works for Nick's household. A product would need an approved integration and probably affiliate economics. Not yet checked.
+- **Health-adjacent risk.** A product that takes in dietitian materials and health logs raises questions about health-data privacy (rules can apply to consumer apps outside HIPAA, and some states have their own), who reviews the plans, and insurance (see "Insurance research leads"). A dietitian partner or reviewer may be needed. Ask a lawyer.
+- **A narrower promise than "meal planning."** Possible: the dietitian's plan, turned into a week of dinners and a full cart.
+- **Whether household memory is enough** to stand apart from MealMatch AI and from Instacart's own tools.
+
+**Open questions:** Is this a business or a feature other apps will absorb? Do the planner and Coupé combine (a family's own recipes feeding the plan)? One LLC for all tools, or separate? (See the entity decision above.)
+
 ## Exit thinking: build-to-sell-a-little, then acquired (added 2026-10-01)
 
 Nick's actual mental model, said out loud for the first time in this conversation: build this, get it into real use at a handful of newsrooms, and the realistic endgame is a larger newsroom-tech vendor acquiring it to fold into their own product line — not scaling it into a standalone SaaS business with hundreds of self-serve customers. BLOX Digital (TownNews) is the specific company he's had in the back of his mind, likely because Link 2 Lee's Summit is already a BLOX customer.
