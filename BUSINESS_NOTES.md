@@ -131,6 +131,15 @@ Nick's hunch (2026-10-20): there may be a product in the food work, even in a cr
 - **A narrower promise than "meal planning."** Possible: the dietitian's plan, turned into a week of dinners and a full cart.
 - **Whether household memory is enough** to stand apart from MealMatch AI and from Instacart's own tools.
 
+**Another customer: a doctor's office or dietitian (Nick's question, 2026-10-20).** Idea: the practice is the customer and gives the tool to patients, like the brochures and pamphlets his own doctor's office gave him. Not legal advice; a healthcare attorney would need to confirm all of this.
+- *A pamphlet is static and stores nothing about the patient. This tool is personalized, adapts weekly and holds household health information.* That puts it in a different category.
+- **Does the practice ever see patient data?** If patients use it on their own and nothing flows back, it's mostly a consumer product the practice recommends. HIPAA's heaviest requirements (a business associate agreement, security reviews) mainly attach when the vendor handles patient data on the practice's behalf. Practices will want adherence or outcome data, which creates that flow.
+- **Who sets the clinical parameters?** Nick's own planner gives no carb targets or medication guidance. A clinical version would let the clinician or dietitian set the guardrails and have the tool apply them, keeping medical judgment with the licensed person. Software that produces disease-specific diet plans can draw FDA attention if it claims to treat or manage a condition, and some states regulate medical nutrition therapy. Claims language matters.
+- **Vendor coverage.** If patient information passes through Claude, check whether Anthropic can sign a business associate agreement for the account type. Verify before assuming.
+- **Realistic buyers.** Independent practices rarely buy patient software. Usual buyers are health systems, payers, employers and diabetes-prevention or nutrition programs, with long sales cycles, security documentation and often records-system integration. That conflicts with Nick's stated preference for small, hand-onboarded customers and no heavy sales.
+- **A better fit may be the dietitian or diabetes educator** as the customer: they already write personalized plans, would configure the tool per client, and are the licensed person in the loop.
+- **Suggested staging:** (1) keep it a household tool and test with a few outside families, with plain "not medical advice" language; (2) ask Nick's own dietitian whether she'd use it for her patients, with the patient owning the data and nothing flowing to the practice; (3) only if that goes well, decide on a clinician-configured version, and then bring in a healthcare attorney and budget for security documentation.
+
 **Open questions:** Is this a business or a feature other apps will absorb? Do the planner and Coupé combine (a family's own recipes feeding the plan)? One LLC for all tools, or separate? (See the entity decision above.)
 
 ## Exit thinking: build-to-sell-a-little, then acquired (added 2026-10-01)
