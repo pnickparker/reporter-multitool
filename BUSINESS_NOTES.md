@@ -10,6 +10,57 @@ These notes aren't legal advice. Confirm the Anthropic, Google, AssemblyAI and V
 - Needed: terms of service, a privacy policy and customer contract templates. Pay a lawyer once for templates you can reuse.
 - Sales tax on software/SaaS varies by state. Check before taking payment.
 
+## Entity decision: separate LLC vs. a DBA under Fredrick Reed LLC (added 2026-10-20)
+
+Not legal or tax advice. Confirm with a Missouri attorney and a CPA before filing.
+
+**Leaning: a separate LLC, with DBAs as the brand layer on top.** A DBA is only a trade name: the product would still be Fredrick Reed LLC, with the same assets and liabilities.
+
+Why separate:
+- **Liability wall.** A misquote complaint, recording-consent dispute or data breach reaches only the new LLC. Under a DBA it could reach everything in Fredrick Reed LLC, including the BLOX production work.
+- **BLOX separation.** Separate contracts, bank accounts and vendor accounts make the "keep vendor work and product apart" point (see "Exit thinking") provable.
+- **Cleaner sale.** An acquirer buys the LLC or its assets with one clear IP story, not a carve-out from an entity that also does other work.
+- **Room for others.** A partner, advisor equity or investor can be added without touching Fredrick Reed LLC.
+
+Costs and cautions:
+- Needs an operating agreement, EIN, bank account and registered agent. Commingling money or skipping paperwork can let a court ignore the liability wall.
+- Code and brand created so far must be moved into the new LLC with a written assignment.
+- An LLC doesn't cover personal guarantees or your own negligence, and it doesn't replace insurance.
+- Missouri filing: web search results (not verified on the Secretary of State's site) put Articles of Organization at about $50 online / $105 on paper, with no annual report for LLCs. A registered agent is still required.
+
+**Brand layer:** the LLC gets a neutral name. Mobile News Bureau and future tools operate as DBAs under it, so a product can be renamed without re-papering contracts. One LLC for the whole family of tools (this app, election tracker, sports tool) is a reasonable middle ground versus one LLC per product.
+
+**Questions for the attorney and CPA:**
+- Should the new LLC be owned by Nick directly (sister company) or by Fredrick Reed LLC (subsidiary)? Sister separates liability and a sale better. The CPA should weigh in on tax, including how it fits Fredrick Reed LLC's tax status.
+- How do we assign the existing code and brand into the new LLC?
+- One LLC for all the tools, or does the election tracker's service work warrant its own?
+- Does Missouri allow anything like a series LLC, and would it help here?
+
+**Timing:** flexible while testers use it free. LLC, insurance and customer paperwork should all be in place before the first dollar and before the association step makes this public.
+
+## Insurance research leads (added 2026-10-20)
+
+Initial web search only. Most sources are brokers selling policies, so treat prices and claims as marketing until a quote says otherwise. Compare actual policy wording, exclusions and sublimits.
+
+**Coverage to ask about**
+- **Tech E&O:** customer lawsuits alleging a mistake in the software cost them money. Likely the closest fit for a bad transcript or a wrong quote score.
+- **Cyber liability:** the company's own costs after a breach (notification, legal, data recovery). Matters because the app holds recordings, transcripts and Drive tokens.
+- **Media liability:** defamation, libel and copyright claims. Relevant because the app produces quotes and social posts from interviews. Standard general liability typically excludes defamation from published content, per CJR.
+- **General liability:** common baseline, but not a substitute for the above.
+- Software clients often ask for a certificate of insurance before work begins.
+- Ask whether the policy treats a software bug as one claim under both E&O and cyber, and how limits are sized for that.
+
+**Places to start**
+- [Embroker](https://www.embroker.com/) — startup-focused broker; packages that can include tech E&O and cyber.
+- [Tech Insurance (Tech Insurance Services)](https://www.techinsurance.com/) — tech-specific broker; has a [tech E&O vs. cyber comparison](https://www.techinsurance.com/small-business-insurance/compare/tech-errors-omissions-vs-cyber-liability).
+- [Zensurance](https://www.zensurance.com/media-liability-insurance) — small-business broker with media liability coverage.
+- [Beazley media liability for SME publishers](https://www.businessinsurance.com/beazley-launches-media-policy-for-small-medium-firms/) — a carrier policy launched June 2020 with optional tech E&O and information security add-ons. Check current terms and availability.
+- [LION Publishers on media liability insurance](https://lionpublishers.com/media-liability-insurance-for-lion-publishers-members/) — members get a discount through broker Acrisure. Check whether Link 2 Lee's Summit or Nick qualifies as a member. If so, ask whether it can be extended to the software LLC.
+- [CJR on journalist liability insurance](https://cjr.org/business_of_news/journalist-liability-insurance-freelance.php) — background; names Axis Pro and Hiscox as carriers that write some independent journalist policies. Warns general brokers often can't place media risk.
+- [NerdWallet startup insurance guide](https://www.nerdwallet.com/business/insurance/learn/business-insurance-for-startups) — overview and provider comparison. A broker-sourced guide it draws on names The Hartford, ERGO NEXT and biBerk as providers to compare.
+
+**What to bring to a quote call:** the LLC (or its planned name), what the software does (records interviews, transcribes, scores quotes, drafts social posts, stores files in the customer's Drive), who the customers are (reporters, small newsrooms), expected customer count and revenue, and how the human-review safeguard against misquotes works (an underwriter may ask).
+
 ## Ownership and AI terms
 
 - Anthropic's consumer and commercial terms both assign any rights in outputs to the user. Anthropic claims no ownership of code Claude Code writes.
