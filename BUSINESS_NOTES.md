@@ -94,6 +94,14 @@ Initial web search only. Most sources are brokers selling policies, so treat pri
 2. This app, once accounts and security are done.
 3. Sports tool.
 
+## Link 2 Desk: what selling it would require (added 2026-10-20)
+
+Nick's thinking: Desk would be a **monthly subscription paid by individual newsrooms**. It cleans freelance copy to AP style and the newsroom's house style, then packages it for the CMS. Selling it needs two per-newsroom settings that don't exist yet:
+- **Load their own house style** (rules and taglines, on top of AP). Today it reads Link 2's style sheet from a private repo at build time.
+- **Set their own packaging** to match their CMS. Today the nine-field package is built for BLOX's legacy CMS, because that is what Link 2 uses.
+
+The same list is in `~/code/link2-desk/DESK_SCOPE.md` under "Later (parked)". Other loose ends before a second newsroom: separate customer data, accounts, and the terms and insurance work above. The reporter multitool already plans per-outlet style (see `V1_SCOPE.md`), so share the approach.
+
 ## Food projects: Coupé and the Family Menu Planner (added 2026-10-20)
 
 Nick's hunch (2026-10-20): there may be a product in the food work, even in a crowded market. It is "down the road" and sits behind the news tools. A one-page briefing for a conversation with a friend who has built and sold AI products is at https://claude.ai/artifact/Y6Akx85ti2Vw9m86QXtsFt (private until shared).
@@ -105,6 +113,10 @@ Nick's hunch (2026-10-20): there may be a product in the food work, even in a cr
 - **Built-in boundary:** it plans food only. No carb targets, medication guidance or interpretation of glucose or weight readings. That belongs to the care team. The Daily Log is Nick's own tracking and is never raised proactively.
 - The eating framework is kept separate from household preferences, so another household would swap the preferences and keep the rest.
 
+**Nick's framing of the two ideas (2026-10-20):**
+- *Planner selling point:* a user enters whatever reasons, restrictions, desires, tastes, family size and budget apply, and the tool plans meals around them and adjusts from regular feedback. The diabetes and heart-health focus is Nick's own setup, not the product's limit. Shopping matters to Nick because delivery fits the household's schedule and the cart total shows whether the budget held. Direction: an **optional** connection to Instacart or similar services, not a requirement.
+- *Coupé's business case:* it's the food version of the DNA and ancestry services. Food and its stories are a big part of many family histories, and everyone Nick has described the project to responds to that theme.
+
 **Coupé (family recipe archive).** Differentiator is provenance: who created a recipe, whose binder it came from, how it passed between branches, plus a review workflow so non-technical relatives contribute without touching a database. The schema is family-agnostic by design. The platform notes are in the "Coupè - Generalized Platform Notes" Google Doc.
 
 **Competition (web search, 2026-10-20; app-store and directory listings, unverified):**
@@ -114,8 +126,8 @@ Nick's hunch (2026-10-20): there may be a product in the food work, even in a cr
 - Try the main competitors before calling this a product.
 
 **What would have to be true to sell the planner**
-- **Instacart access.** Cart filling works for Nick's household. A product would need an approved integration and probably affiliate economics. Not yet checked.
-- **Health-adjacent risk.** A product that takes in dietitian materials and health logs raises questions about health-data privacy (rules can apply to consumer apps outside HIPAA, and some states have their own), who reviews the plans, and insurance (see "Insurance research leads"). A dietitian partner or reviewer may be needed. Ask a lawyer.
+- **Instacart access.** Cart filling works for Nick's household. As an optional connection in a product, it would need an approved integration and probably affiliate economics. Not yet checked.
+- **Health-adjacent risk.** A product that lets users enter dietitian materials and health logs raises questions about health-data privacy (rules can apply to consumer apps outside HIPAA, and some states have their own), who reviews the plans, and insurance (see "Insurance research leads"). A dietitian partner or reviewer may be needed. Ask a lawyer.
 - **A narrower promise than "meal planning."** Possible: the dietitian's plan, turned into a week of dinners and a full cart.
 - **Whether household memory is enough** to stand apart from MealMatch AI and from Instacart's own tools.
 
