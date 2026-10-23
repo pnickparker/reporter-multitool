@@ -208,6 +208,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                   </p>
                 )}
                 {held && canTranscribe && <TranscribeNowButton assetId={asset.id} />}
+                {!held && asset.status === "ERROR" && canTranscribe && (
+                  <TranscribeNowButton assetId={asset.id} label="Try again" />
+                )}
                 {asset.status === "ERROR" && asset.errorMessage && (
                   <p className={`mt-2 rounded-2xl bg-surface-2 px-3 py-2 text-xs leading-5 ${held ? "text-butter" : "text-danger"}`}>
                     {asset.errorMessage}
