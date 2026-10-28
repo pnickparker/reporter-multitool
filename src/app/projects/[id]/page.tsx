@@ -25,6 +25,7 @@ import { ProcessingProgress } from "@/components/processing-progress";
 import { RerunTranscript } from "@/components/rerun-transcript";
 import { TranscribeNowButton } from "@/components/transcribe-now-button";
 import { RemoveUnfinishedUpload } from "@/components/remove-unfinished-upload";
+import { LocalTime } from "@/components/local-time";
 
 const STATUS_DOT: Record<string, DotState> = {
   READY: "ready",
@@ -182,6 +183,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                     </>
                   ) : (
                     "Drive file: —"
+                  )}
+                </p>
+                <p className="text-xs text-muted">
+                  Uploaded <LocalTime iso={asset.uploadedAt.toISOString()} />
+                  {/* No separate error time is stored; for a failed recording the last processing start is the nearest thing. */}
+                  {asset.status === "ERROR" && asset.processingStartedAt && (
+                    <>
+                      {" "}
+                      · Last tried <LocalTime iso={asset.processingStartedAt.toISOString()} />
+                    </>
                   )}
                 </p>
                 {isPhoto && <PhotoPreview assetId={asset.id} />}
