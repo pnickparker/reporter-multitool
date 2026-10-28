@@ -19,6 +19,9 @@ Video, audio, photos, PDFs and typed notes. Word documents aren't supported yet.
 **How long can a recording be?**
 Roughly 40 minutes of video or 1½ hours of audio is processed automatically. Longer or bigger files are saved safely and show **Saved, not transcribed**; tap **Transcribe now** to try. File *size* matters as much as length (4K video is huge).
 
+**Why did my video stop by itself at about 10 minutes?**
+Clips recorded with the in-app camera can stop at about 10 minutes on an iPhone. That's the phone's limit, not an error, and the clip is saved and uploads as normal. Start another clip to keep going. For longer interviews, record with your device's own camera or voice recorder, then tap **Upload**.
+
 **How long does it take?**
 A short clip takes a minute or two. A long interview takes a few minutes. You can close the app while it works.
 

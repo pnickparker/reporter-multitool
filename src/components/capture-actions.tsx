@@ -430,7 +430,8 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
         )}
         {!busy && (
           <p className="mt-2.5 text-xs leading-4 text-violet-100">
-            For audio, record with your phone&apos;s voice recorder, then tap Upload.
+            Camera clips can stop at about 10 minutes. For longer recordings, use your device&apos;s native camera or
+            recorder, then tap Upload.
           </p>
         )}
         {notePanel}
@@ -461,8 +462,8 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
         </button>
       </div>
       <p className="mt-2 text-xs text-muted">
-        Upload takes a recording, photo, or PDF already on your phone. For audio, record with your phone&apos;s voice
-        recorder, then upload it here.
+        Upload takes a recording, photo, or PDF already on your phone. Camera clips can stop at about 10 minutes. For
+        longer recordings, use your device&apos;s native camera or recorder, then upload it here.
       </p>
       {progressPanel}
       {waitingList}

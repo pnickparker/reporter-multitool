@@ -28,6 +28,8 @@ On the Home screen you have three ways to bring something in.
 
 **For an interview, record audio with your phone's own voice recorder app, then Upload it.** That's the most reliable way to record a long conversation. The in-app camera is best for quick photos and video.
 
+**Camera clips can stop at about 10 minutes.** On an iPhone, a video recorded through the big circle ends by itself at roughly 10 minutes and goes straight to the upload screen. That's the phone's limit, not an error, and nothing is lost: the clip is saved in full. Start a new clip to keep going. For a long interview, use your phone's own camera or voice recorder (which have no such cap), then **Upload** the file.
+
 **Know this about the camera:** pictures and video taken through the big circle go to the app, **not** to your phone's Photos. The app keeps a copy on your phone until the upload finishes. If you want one in Photos too, use **Save to phone** (see below).
 
 **Turn off Low Power Mode before you shoot.** The camera keeps your screen awake while you record, so you can hold the phone still and point it without the screen locking. Low Power Mode can override that: it makes the phone lock the screen after 30 seconds and may stop the app from keeping it awake, which can end a video partway through. (If **Auto-Lock** is greyed out in Settings → Display & Brightness, Low Power Mode is on.) If a video does stop short, keep it rather than tapping Retake. What was recorded is still there.
