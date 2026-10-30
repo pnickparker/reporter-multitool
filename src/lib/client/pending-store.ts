@@ -66,8 +66,25 @@ export async function savePending(file: File, endpoint: string): Promise<Pending
 /** Remembers the Drive upload a recording is part of, so a later resume can pick up where it stopped. */
 export async function saveSession(id: string, session: UploadSession): Promise<void> {
   try {
-    const existing = await withStore<PendingRecording | undefined>("readonly", (store) => store.get(id));
-    if (existing) await withStore("readwrite", (store) => store.put({ ...existing, session }));
+    // One transaction for the read and the write: as two, a removePending landing between them (a fast upload
+    // finishing) would be undone by the write, resurrecting a finished recording as "waiting".
+    const db = await openDb();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE, "readwrite");
+        const store = tx.objectStore(STORE);
+        const read = store.get(id);
+        read.onsuccess = () => {
+          const existing = read.result as PendingRecording | undefined;
+          if (existing) store.put({ ...existing, session });
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error ?? new Error("Storage transaction aborted"));
+      });
+    } finally {
+      db.close();
+    }
   } catch {
     // Best effort: the file itself is already kept; a lost session only means a resume starts the upload over.
   }

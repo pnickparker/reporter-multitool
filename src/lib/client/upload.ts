@@ -165,12 +165,50 @@ export interface UploadSession {
   durationSeconds: number | null;
 }
 
+const QUICK_CAPTURE_ENDPOINT = "/api/quick-capture";
+
+/**
+ * Asks the server to open an upload: a new asset row plus a Drive upload
+ * session. If the project the recording was headed for no longer exists (it
+ * was deleted while the recording waited), the recording moves to a brand-new
+ * project instead — retrying a deleted project can never succeed, and the
+ * recording must not be stranded. `endpoint` in the result is where it
+ * actually went.
+ */
+async function startUpload(
+  file: File,
+  endpoint: string,
+  mimeType: string,
+  durationSeconds: number | null,
+  onProgress: (label: string) => void,
+): Promise<{ session: UploadSession; endpoint: string }> {
+  const post = (target: string) =>
+    fetchOrExplain(`${target}/init`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, mimeType }),
+    });
+
+  let usedEndpoint = endpoint;
+  let initRes = await post(endpoint);
+  if (initRes.status === 404 && endpoint !== QUICK_CAPTURE_ENDPOINT) {
+    onProgress("That project was deleted — saving this recording to a new project…");
+    usedEndpoint = QUICK_CAPTURE_ENDPOINT;
+    initRes = await post(QUICK_CAPTURE_ENDPOINT);
+  }
+  if (!initRes.ok) throw await errorFrom(initRes, "Couldn't start upload");
+  const { assetId, uploadUrl, projectId } = await initRes.json();
+  return { session: { assetId, uploadUrl, projectId, durationSeconds }, endpoint: usedEndpoint };
+}
+
 /**
  * Uploads a recording, photo, or PDF straight to Drive (in pieces relayed
  * through our server) and registers it. `endpoint` is either
  * "/api/quick-capture" (creates a project on the fly) or
  * "/api/projects/<id>/assets". The asset's type is worked out server-side
- * from the file's MIME type.
+ * from the file's MIME type. The result's `endpoint` is where it actually
+ * landed — it differs from the one passed in when the original project was
+ * gone and the recording went to a new one.
  *
  * Pass back the `session` from a failed attempt (reported via `onSession`) to
  * resume it: Drive is asked how much it already has, and only the rest is
@@ -182,12 +220,13 @@ export async function uploadFile(
   onProgress: (label: string) => void,
   session: UploadSession | null = null,
   onSession: (session: UploadSession) => void = () => {},
-): Promise<{ projectId: string }> {
+): Promise<{ projectId: string; endpoint: string }> {
   const mimeType = resolveMimeType(file);
   const isRecording = mimeType.startsWith("audio/") || mimeType.startsWith("video/");
 
   let driveFile: { id: string } | null = null;
   let start = 0;
+  let usedEndpoint = endpoint;
 
   if (session) {
     onProgress("Checking what was already uploaded…");
@@ -202,19 +241,13 @@ export async function uploadFile(
     onProgress("Starting upload…");
     const durationSeconds = isRecording ? await readMediaDuration(file, mimeType) : null;
 
-    const initRes = await fetchOrExplain(`${endpoint}/init`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName: file.name, mimeType }),
-    });
-    if (!initRes.ok) throw await errorFrom(initRes, "Couldn't start upload");
-    const { assetId, uploadUrl, projectId } = await initRes.json();
-    session = { assetId, uploadUrl, projectId, durationSeconds };
+    ({ session, endpoint: usedEndpoint } = await startUpload(file, endpoint, mimeType, durationSeconds, onProgress));
     start = 0;
     driveFile = null;
   }
   onSession(session);
-  const { assetId, uploadUrl, projectId, durationSeconds } = session;
+  const { uploadUrl, durationSeconds } = session;
+  let { assetId, projectId } = session;
 
   let failures = 0;
   let pieceSize = CHUNK_SIZE;
@@ -258,14 +291,26 @@ export async function uploadFile(
   if (!driveFile) throw new Error("Upload to Drive failed partway through — try again");
 
   onProgress("Finishing up…");
-  const finalizeRes = await fetchOrExplain(`/api/assets/${assetId}/finalize`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ driveFileId: driveFile.id, durationSeconds }),
-  });
+  const finalize = (id: string) =>
+    fetchOrExplain(`/api/assets/${id}/finalize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ driveFileId: driveFile!.id, durationSeconds }),
+    });
+  let finalizeRes = await finalize(assetId);
+  if (finalizeRes.status === 404) {
+    // The file is fully in Drive but its asset row is gone (the project was deleted while the upload sat waiting).
+    // Open a fresh row — no need to send the file again — and register the Drive file under that.
+    onProgress("That project was deleted — saving this recording to a new project…");
+    const fresh = await startUpload(file, endpoint, mimeType, durationSeconds, onProgress);
+    assetId = fresh.session.assetId;
+    projectId = fresh.session.projectId;
+    usedEndpoint = fresh.endpoint;
+    finalizeRes = await finalize(assetId);
+  }
   if (!finalizeRes.ok) throw await errorFrom(finalizeRes, "Upload finished but couldn't be saved");
 
-  return { projectId };
+  return { projectId, endpoint: usedEndpoint };
 }
 
 /** Saves typed or dictated text as a note — small enough to go through the server in one request. */

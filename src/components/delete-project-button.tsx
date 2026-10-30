@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { listPending } from "@/lib/client/pending-store";
 
 /**
  * Removes a project (and its assets/transcripts/quotes/posts) from the app
@@ -24,7 +25,15 @@ export function DeleteProjectButton({
   async function handleDelete(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(`Delete "${projectName}"? This removes it from the app but leaves its files in Drive. Can't be undone.`)) {
+    // Recordings on this phone that are still waiting to upload into this project (or already part-uploaded to it).
+    const waiting = (await listPending()).filter(
+      (r) => r.endpoint.startsWith(`/api/projects/${projectId}/`) || r.session?.projectId === projectId,
+    );
+    const waitingNote =
+      waiting.length > 0
+        ? `\n\n⚠️ ${waiting.length === 1 ? "A recording on this phone hasn't" : `${waiting.length} recordings on this phone haven't`} finished uploading to this project. ${waiting.length === 1 ? "It" : "They"} will be saved to a new project instead — nothing is lost.`
+        : "";
+    if (!confirm(`Delete "${projectName}"? This removes it from the app but leaves its files in Drive. Can't be undone.${waitingNote}`)) {
       return;
     }
     setBusy(true);

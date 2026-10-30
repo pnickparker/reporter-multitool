@@ -177,7 +177,7 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
     const letScreenSleep = keepScreenAwake();
     releaseCameraAwake();
     try {
-      const { projectId } = await uploadFile(
+      const { projectId, endpoint: landedAt } = await uploadFile(
         item.file,
         item.endpoint,
         setProgress,
@@ -194,7 +194,8 @@ export function CaptureActions({ endpoint, goToProject = false, layout, initialN
       // Cleared only after success: resetting an input early can invalidate the picked file on some phones.
       if (cameraRef.current) cameraRef.current.value = "";
       if (uploadRef.current) uploadRef.current.value = "";
-      afterSuccess(projectId, item.endpoint);
+      // landedAt differs from item.endpoint when the original project was deleted and the recording went to a new one — open that one.
+      afterSuccess(projectId, landedAt);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed";
       setWaiting((all) => all.map((w) => (w.id === item.id ? { ...w, error: message } : w)));
