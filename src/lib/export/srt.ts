@@ -7,8 +7,20 @@ import type { Utterance } from "@/lib/transcript-format";
  *
  * House rules, from what editors expect of readable captions: at most two lines of 42 characters, a new cue
  * whenever the speaker changes, a break at a sentence end or a noticeable pause, and no cue on screen for
- * more than a few seconds. No speaker names in the text — a caption is what was said, not who said it.
+ * more than a few seconds. A speaker the reporter has named gets a "Name: " prefix on every cue from their
+ * turns; an unnamed speaker (still "Speaker A") gets no prefix, so a single-speaker or all-default transcript
+ * isn't cluttered with uninformative tags. A cue that falls inside one of the app's suggested quotes gets a
+ * "★ " mark, so an editor scanning the caption track in Premiere/CapCut can see the highlighted moments in
+ * context instead of needing a separate file.
  */
+
+/** A suggested quote's time range (milliseconds from the start of the recording) to mark inline in the captions. */
+export interface QuoteRange {
+  start: number;
+  end: number;
+}
+
+const QUOTE_MARK = "★ ";
 
 const MAX_LINE_CHARS = 42;
 const MAX_CUE_CHARS = MAX_LINE_CHARS * 2 - 4;
@@ -53,12 +65,15 @@ function wordsOf(u: Utterance): Word[] {
   });
 }
 
-/** Splits one cue's text over at most two lines, balancing them so neither runs long. */
-function wrap(text: string): string {
+/**
+ * Splits one cue's text over at most two lines, balancing them so neither runs long. `keepIntactChars`
+ * (a leading speaker-name prefix) is never split across the break.
+ */
+function wrap(text: string, keepIntactChars = 0): string {
   if (text.length <= MAX_LINE_CHARS) return text;
   const mid = text.length / 2;
   let best = -1;
-  for (let i = 0; i < text.length; i++) {
+  for (let i = keepIntactChars; i < text.length; i++) {
     if (text[i] !== " ") continue;
     if (best === -1 || Math.abs(i - mid) < Math.abs(best - mid)) best = i;
   }
@@ -66,11 +81,13 @@ function wrap(text: string): string {
 }
 
 const charsOf = (words: Word[]) => words.reduce((sum, w) => sum + w.text.length + 1, 0) - 1;
-const fits = (words: Word[]) => charsOf(words) <= MAX_CUE_CHARS && words[words.length - 1].end - words[0].start <= MAX_CUE_MS;
+/** `reserve` is the speaker-name prefix's length, held out of the per-cue character budget. */
+const fits = (words: Word[], reserve: number) =>
+  charsOf(words) + reserve <= MAX_CUE_CHARS && words[words.length - 1].end - words[0].start <= MAX_CUE_MS;
 
 /** Splits a run of words into cues that fit, cutting near the middle (no one-word leftovers) and preferring a punctuation mark or a pause. */
-function splitToFit(words: Word[]): Word[][] {
-  if (fits(words)) return [words];
+function splitToFit(words: Word[], reserve: number): Word[][] {
+  if (fits(words, reserve)) return [words];
   const total = charsOf(words);
   let best = 1;
   let bestScore = Infinity;
@@ -85,10 +102,18 @@ function splitToFit(words: Word[]): Word[][] {
       best = i;
     }
   }
-  return [...splitToFit(words.slice(0, best)), ...splitToFit(words.slice(best))];
+  return [...splitToFit(words.slice(0, best), reserve), ...splitToFit(words.slice(best), reserve)];
 }
 
-function cuesFor(words: Word[]): Cue[] {
+const overlapsAny = (start: number, end: number, ranges: QuoteRange[]) =>
+  ranges.some((r) => start < r.end && end > r.start);
+
+/**
+ * `namePrefix` ("Name: " or "") is prepended to every cue built from these words; a cue that overlaps one of
+ * `quotes` also gets the "★ " mark. The line budget reserves space for both regardless of whether a given
+ * cue ends up marked, so splitting doesn't shift depending on quote placement.
+ */
+function cuesFor(words: Word[], namePrefix: string, quotes: QuoteRange[]): Cue[] {
   // First the natural breaks (a long pause, the end of a sentence), then split anything still too long to fit.
   const runs: Word[][] = [];
   let current: Word[] = [];
@@ -106,7 +131,13 @@ function cuesFor(words: Word[]): Cue[] {
   }
   if (current.length > 0) runs.push(current);
 
-  return runs.flatMap(splitToFit).map((w) => ({ start: w[0].start, end: w[w.length - 1].end, text: wrap(w.map((x) => x.text).join(" ")) }));
+  const reserve = QUOTE_MARK.length + namePrefix.length;
+  return runs.flatMap((r) => splitToFit(r, reserve)).map((w) => {
+    const start = w[0].start;
+    const end = w[w.length - 1].end;
+    const fullPrefix = (overlapsAny(start, end, quotes) ? QUOTE_MARK : "") + namePrefix;
+    return { start, end, text: wrap(fullPrefix + w.map((x) => x.text).join(" "), fullPrefix.length) };
+  });
 }
 
 function timecode(ms: number): string {
@@ -115,9 +146,23 @@ function timecode(ms: number): string {
   return `${pad(Math.floor(total / 3_600_000))}:${pad(Math.floor(total / 60_000) % 60)}:${pad(Math.floor(total / 1000) % 60)},${pad(total % 1000, 3)}`;
 }
 
-/** The .srt text for a transcript, or null when the stored turns carry no timing to build captions from. */
-export function buildSrt(utterances: Utterance[]): string | null {
-  const cues = utterances.flatMap((u) => cuesFor(wordsOf(u))).sort((a, b) => a.start - b.start);
+/**
+ * The .srt text for a transcript, or null when the stored turns carry no timing to build captions from.
+ * `speakerNames` is the reporter's saved names (e.g. `{"A": "Coach Smith"}`, from `speakerNamesOf`); a
+ * speaker with no saved name gets no prefix. `quotes` are the app's suggested-quote time ranges to mark
+ * inline (a quote with no known end — an older, unverified one — can't be placed, so skip it).
+ */
+export function buildSrt(
+  utterances: Utterance[],
+  speakerNames: Record<string, string> = {},
+  quotes: QuoteRange[] = [],
+): string | null {
+  const cues = utterances
+    .flatMap((u) => {
+      const name = u.speaker ? speakerNames[u.speaker] : undefined;
+      return cuesFor(wordsOf(u), name ? `${name}: ` : "", quotes);
+    })
+    .sort((a, b) => a.start - b.start);
   if (cues.length === 0) return null;
 
   // Editors reject overlapping cues: stretch very short ones, but never past the next cue's start.
