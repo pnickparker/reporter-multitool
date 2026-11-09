@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<title>Mobile News Bureau: Tester Review</title>
+<style>
+  :root {
+    --ground: #15111f; --surface: #211a33; --surface-2: #2b2243; --line: #3a3057;
+    --ink: #f4f1fb; --muted: #a99fc4; --violet: #7c3aed; --violet-soft: #b9a2ff;
+    --mint: #3ddc97; --mint-deep: #12332a;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.7rem; line-height: 1.2; margin: 8px 0 8px; }
+  .lede { color: var(--muted); margin: 0 0 24px; }
+  section {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+    padding: 20px 16px; margin: 0 0 20px;
+  }
+  h2 { font-size: 1.15rem; margin: 0 0 4px; color: var(--violet-soft); }
+  .sub { color: var(--muted); font-size: .92rem; margin: 0 0 16px; }
+  .q { margin: 0 0 20px; border: 0; padding: 0; min-width: 0; }
+  .q:last-child { margin-bottom: 0; }
+  .q > label, .q > legend { display: block; font-weight: 600; margin: 0 0 8px; padding: 0; }
+  .req { color: var(--mint); }
+  .hint { color: var(--muted); font-weight: 400; font-size: .9rem; display: block; }
+  input[type=text], textarea {
+    width: 100%; background: var(--ground); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 10px; padding: 12px; font: inherit;
+  }
+  textarea { min-height: 104px; resize: vertical; }
+  input[type=text]:focus, textarea:focus { outline: 2px solid var(--violet-soft); border-color: transparent; }
+  .opts { display: flex; flex-direction: column; gap: 8px; }
+  .opt {
+    display: flex; gap: 12px; align-items: flex-start; background: var(--ground);
+    border: 1px solid var(--line); border-radius: 10px; padding: 12px; cursor: pointer;
+  }
+  .opt input { margin-top: 4px; accent-color: var(--violet); width: 18px; height: 18px; flex: none; }
+  .opt:has(input:checked) { border-color: var(--mint); background: var(--mint-deep); }
+  .rate { margin: 0 0 16px; }
+  .rate .name { font-weight: 600; margin: 0 0 6px; }
+  .pills { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .pills label {
+    min-width: 0; text-align: center; padding: 10px 4px;
+    background: var(--ground); border: 1px solid var(--line); border-radius: 10px; cursor: pointer;
+    font-size: .95rem;
+  }
+  .pills label.na { grid-column: 1 / -1; color: var(--muted); }
+  .pills input { position: absolute; opacity: 0; pointer-events: none; }
+  .pills label:has(input:checked) { background: var(--violet); border-color: var(--violet); color: #fff; }
+  .pills label:has(input:focus-visible) { outline: 2px solid var(--violet-soft); outline-offset: 2px; }
+  .scale { display: flex; justify-content: space-between; color: var(--muted); font-size: .8rem; margin: 0 0 6px; }
+  .money { display: flex; align-items: center; gap: 8px; }
+  .money span { color: var(--muted); }
+  .money input { max-width: 140px; }
+  button {
+    width: 100%; background: var(--mint); color: #08241a; border: 0; border-radius: 12px;
+    padding: 16px; font: inherit; font-weight: 700; cursor: pointer;
+  }
+  button:focus-visible { outline: 3px solid var(--violet-soft); outline-offset: 2px; }
+  .hp { position: absolute; left: -9999px; height: 0; overflow: hidden; }
+  .foot { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Mobile News Bureau: tester review</h1>
+  <p class="lede">Thanks for using the app these past weeks. This takes about 8 minutes. Honest answers help more than nice ones, and "I didn't use that" is a useful answer. Where you can, tell me about a real time you used it, not what you might do someday.</p>
+
+  <form name="tester-review" method="POST" action="/thanks" data-netlify="true" netlify-honeypot="bot-field">
+    <input type="hidden" name="form-name" value="tester-review">
+    <input type="hidden" name="subject" value="Tester review from %{formName}">
+    <p class="hp"><label>Don't fill this out: <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+
+    <section>
+      <h2>About you</h2>
+      <div class="q">
+        <label for="name">Your name <span class="req">*</span></label>
+        <input type="text" id="name" name="name" required autocomplete="name">
+      </div>
+      <fieldset class="q">
+        <legend>What do you mostly use it on? <span class="req">*</span></legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="device" value="iPhone" required> iPhone</label>
+          <label class="opt"><input type="radio" name="device" value="Android"> Android</label>
+          <label class="opt"><input type="radio" name="device" value="Computer"> Computer</label>
+          <label class="opt"><input type="radio" name="device" value="Mix"> A mix</label>
+        </div>
+      </fieldset>
+      <fieldset class="q">
+        <legend>How often did you use it over the past few weeks? <span class="req">*</span></legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="frequency" value="Almost every assignment" required> Almost every assignment</label>
+          <label class="opt"><input type="radio" name="frequency" value="A few times a week"> A few times a week</label>
+          <label class="opt"><input type="radio" name="frequency" value="About once a week"> About once a week</label>
+          <label class="opt"><input type="radio" name="frequency" value="A few times in total"> A few times in total</label>
+          <label class="opt"><input type="radio" name="frequency" value="Barely"> Barely</label>
+        </div>
+      </fieldset>
+      <fieldset class="q">
+        <legend>What did you use it for? <span class="hint">Check all that apply.</span></legend>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" name="used_for" value="Audio interviews, for quotes"> Audio interviews, for quotes</label>
+          <label class="opt"><input type="checkbox" name="used_for" value="Video interviews or clips"> Video interviews or clips</label>
+          <label class="opt"><input type="checkbox" name="used_for" value="Social post drafts"> Social post drafts</label>
+          <label class="opt"><input type="checkbox" name="used_for" value="Notes"> Notes</label>
+          <label class="opt"><input type="checkbox" name="used_for" value="Photos or documents"> Photos or documents</label>
+          <label class="opt"><input type="checkbox" name="used_for" value="Captions (.srt)"> Captions (.srt) for video editing</label>
+          <label class="opt"><input type="checkbox" name="used_for" value="Long recordings (30+ min)"> Long recordings (30+ minutes)</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section>
+      <h2>A real example</h2>
+      <div class="q">
+        <label for="real_story">Walk me through the last real story you used it on. <span class="req">*</span>
+          <span class="hint">What did you record, what did you take out of the app, and what did you still do by hand?</span></label>
+        <textarea id="real_story" name="real_story" required></textarea>
+      </div>
+      <div class="q">
+        <label for="didnt_use">Was there a time you could have used it and didn't? What did you use instead (Otter, Voice Memos, typing it up, something else)?</label>
+        <textarea id="didnt_use" name="didnt_use"></textarea>
+      </div>
+    </section>
+
+    <section>
+      <h2>How well did each part work?</h2>
+      <p class="sub">1 = poor, 5 = great. Skip it, or pick "Didn't use", for anything you haven't tried.</p>
+
+      <div class="rate"><p class="name">Uploading or capturing a recording</p><div class="pills">
+        <label class="na"><input type="radio" name="rate_upload" value="Didn't use"> Didn't use</label>
+        <label><input type="radio" name="rate_upload" value="1"> 1</label><label><input type="radio" name="rate_upload" value="2"> 2</label><label><input type="radio" name="rate_upload" value="3"> 3</label><label><input type="radio" name="rate_upload" value="4"> 4</label><label><input type="radio" name="rate_upload" value="5"> 5</label></div></div>
+
+      <div class="rate"><p class="name">Transcript accuracy</p><div class="pills">
+        <label class="na"><input type="radio" name="rate_transcript" value="Didn't use"> Didn't use</label>
+        <label><input type="radio" name="rate_transcript" value="1"> 1</label><label><input type="radio" name="rate_transcript" value="2"> 2</label><label><input type="radio" name="rate_transcript" value="3"> 3</label><label><input type="radio" name="rate_transcript" value="4"> 4</label><label><input type="radio" name="rate_transcript" value="5"> 5</label></div></div>
+
+      <div class="rate"><p class="name">Speaker labels and naming speakers</p><div class="pills">
+        <label class="na"><input type="radio" name="rate_speakers" value="Didn't use"> Didn't use</label>
+        <label><input type="radio" name="rate_speakers" value="1"> 1</label><label><input type="radio" name="rate_speakers" value="2"> 2</label><label><input type="radio" name="rate_speakers" value="3"> 3</label><label><input type="radio" name="rate_speakers" value="4"> 4</label><label><input type="radio" name="rate_speakers" value="5"> 5</label></div></div>
+
+      <div class="rate"><p class="name">Which quotes it picked</p><div class="pills">
+        <label class="na"><input type="radio" name="rate_quote_picks" value="Didn't use"> Didn't use</label>
+        <label><input type="radio" name="rate_quote_picks" value="1"> 1</label><label><input type="radio" name="rate_quote_picks" value="2"> 2</label><label><input type="radio" name="rate_quote_picks" value="3"> 3</label><label><input type="radio" name="rate_quote_picks" value="4"> 4</label><label><input type="radio" name="rate_quote_picks" value="5"> 5</label></div></div>
+
+      <div class="rate"><p class="name">The quote scores</p><div class="pills">
+        <label class="na"><input type="radio" name="rate_quote_scores" value="Didn't use"> Didn't use</label>
+        <label><input type="radio" name="rate_quote_scores" value="1"> 1</label><label><input type="radio" name="rate_quote_scores" value="2"> 2</label><label><input type="radio" name="rate_quote_scores" value="3"> 3</label><label><input type="radio" name="rate_quote_scores" value="4"> 4</label><label><input type="radio" name="rate_quote_scores" value="5"> 5</label></div></div>
+
+      <div class="rate"><p class="name">Social post drafts</p><div class="pills">
+        <label class="na"><input type="radio" name="rate_posts" value="Didn't use"> Didn't use</label>
+        <label><input type="radio" name="rate_posts" value="1"> 1</label><label><input type="radio" name="rate_posts" value="2"> 2</label><label><input type="radio" name="rate_posts" value="3"> 3</label><label><input type="radio" name="rate_posts" value="4"> 4</label><label><input type="radio" name="rate_posts" value="5"> 5</label></div></div>
+
+      <div class="rate"><p class="name">Speed (how long you waited)</p><div class="pills">
+        <label class="na"><input type="radio" name="rate_speed" value="Didn't use"> Didn't use</label>
+        <label><input type="radio" name="rate_speed" value="1"> 1</label><label><input type="radio" name="rate_speed" value="2"> 2</label><label><input type="radio" name="rate_speed" value="3"> 3</label><label><input type="radio" name="rate_speed" value="4"> 4</label><label><input type="radio" name="rate_speed" value="5"> 5</label></div></div>
+
+      <div class="rate"><p class="name">Playing a quote to check it</p><div class="pills">
+        <label class="na"><input type="radio" name="rate_playback" value="Didn't use"> Didn't use</label>
+        <label><input type="radio" name="rate_playback" value="1"> 1</label><label><input type="radio" name="rate_playback" value="2"> 2</label><label><input type="radio" name="rate_playback" value="3"> 3</label><label><input type="radio" name="rate_playback" value="4"> 4</label><label><input type="radio" name="rate_playback" value="5"> 5</label></div></div>
+
+      <div class="q">
+        <label for="low_ratings">Anything you rated 1 or 2: what happened?</label>
+        <textarea id="low_ratings" name="low_ratings"></textarea>
+      </div>
+    </section>
+
+    <section>
+      <h2>Trust</h2>
+      <fieldset class="q">
+        <legend>Before using a quote, did you check it against the audio? <span class="req">*</span></legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="checked_quotes" value="Always" required> Always</label>
+          <label class="opt"><input type="radio" name="checked_quotes" value="Usually"> Usually</label>
+          <label class="opt"><input type="radio" name="checked_quotes" value="Sometimes"> Sometimes</label>
+          <label class="opt"><input type="radio" name="checked_quotes" value="Never"> Never</label>
+        </div>
+      </fieldset>
+      <div class="q">
+        <label for="wrong_things">Did you ever find a quote, a speaker label or a post that was wrong, or that you didn't trust? What was it?</label>
+        <textarea id="wrong_things" name="wrong_things"></textarea>
+      </div>
+      <div class="q">
+        <label for="failures">Did anything fail, get stuck or get lost (an upload, a recording, a video)?
+          <span class="hint">Include the exact words on screen if you remember them. If a recording was ever lost, say so plainly. That matters more than anything else here.</span></label>
+        <textarea id="failures" name="failures"></textarea>
+      </div>
+    </section>
+
+    <section>
+      <h2>How much does it matter to you?</h2>
+      <fieldset class="q">
+        <legend>How would you feel if you could no longer use it? <span class="req">*</span></legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="disappointed" value="Very disappointed" required> Very disappointed</label>
+          <label class="opt"><input type="radio" name="disappointed" value="Somewhat disappointed"> Somewhat disappointed</label>
+          <label class="opt"><input type="radio" name="disappointed" value="Not disappointed"> Not disappointed</label>
+        </div>
+      </fieldset>
+      <div class="q">
+        <label for="miss_most">What is the one thing you would miss most?</label>
+        <textarea id="miss_most" name="miss_most"></textarea>
+      </div>
+      <div class="q">
+        <label for="would_quit">What is the one thing that would make you stop using it?</label>
+        <textarea id="would_quit" name="would_quit"></textarea>
+      </div>
+    </section>
+
+    <section>
+      <h2>Price</h2>
+      <p class="sub">Rough numbers are fine. There are no wrong answers.</p>
+      <div class="q">
+        <label for="current_spend">What do you pay each month now for transcription or similar tools? <span class="hint">$0 is fine.</span></label>
+        <div class="money"><span>$</span><input type="text" id="current_spend" name="current_spend" inputmode="decimal"></div>
+      </div>
+      <fieldset class="q">
+        <legend>If you kept using this, who would pay?</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="who_pays" value="Me, out of my own pocket"> I would, out of my own pocket</label>
+          <label class="opt"><input type="radio" name="who_pays" value="The outlet I work for"> The outlet I work for would</label>
+          <label class="opt"><input type="radio" name="who_pays" value="Depends on the outlet"> It depends on the outlet</label>
+          <label class="opt"><input type="radio" name="who_pays" value="Neither, would not pay"> Neither. I would not pay for it</label>
+        </div>
+      </fieldset>
+      <fieldset class="q">
+        <legend>How would you prefer to pay?</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="pay_style" value="Flat monthly per person"> A flat monthly price per person</label>
+          <label class="opt"><input type="radio" name="pay_style" value="Flat monthly per newsroom"> A flat monthly price per newsroom</label>
+          <label class="opt"><input type="radio" name="pay_style" value="Per hour of recording"> Pay per hour of recording</label>
+          <label class="opt"><input type="radio" name="pay_style" value="Per recording"> Pay per recording</label>
+          <label class="opt"><input type="radio" name="pay_style" value="No preference"> No preference</label>
+        </div>
+      </fieldset>
+      <p class="sub" style="margin-top:8px"><strong>Per month, for the way you use it, at what price would it be...</strong></p>
+      <div class="q"><label for="price_too_cheap">...so cheap you would doubt it?</label>
+        <div class="money"><span>$</span><input type="text" id="price_too_cheap" name="price_too_cheap" inputmode="decimal"><span>/ month</span></div></div>
+      <div class="q"><label for="price_bargain">...a bargain?</label>
+        <div class="money"><span>$</span><input type="text" id="price_bargain" name="price_bargain" inputmode="decimal"><span>/ month</span></div></div>
+      <div class="q"><label for="price_getting_expensive">...getting expensive, but you would still consider it?</label>
+        <div class="money"><span>$</span><input type="text" id="price_getting_expensive" name="price_getting_expensive" inputmode="decimal"><span>/ month</span></div></div>
+      <div class="q"><label for="price_too_expensive">...too expensive to consider?</label>
+        <div class="money"><span>$</span><input type="text" id="price_too_expensive" name="price_too_expensive" inputmode="decimal"><span>/ month</span></div></div>
+    </section>
+
+    <section>
+      <h2>Your recordings</h2>
+      <fieldset class="q">
+        <legend>Where should your recordings be kept?</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="storage" value="My own Google Drive"> In my own Google Drive, so I control them</label>
+          <label class="opt"><input type="radio" name="storage" value="Stored by the app for a set time"> Stored by the app for a set time, such as 90 days</label>
+          <label class="opt"><input type="radio" name="storage" value="Don't care if nothing lost"> I don't care, as long as nothing is lost</label>
+          <label class="opt"><input type="radio" name="storage" value="Not sure"> I'm not sure</label>
+        </div>
+      </fieldset>
+      <div class="q">
+        <label for="editor_concerns">Would your editor or your sources have concerns about recordings going through an app like this? What would they ask?</label>
+        <textarea id="editor_concerns" name="editor_concerns"></textarea>
+      </div>
+    </section>
+
+    <section>
+      <h2>What next</h2>
+      <div class="q">
+        <label for="one_thing">If I could fix or add only ONE thing next, what should it be? <span class="req">*</span></label>
+        <textarea id="one_thing" name="one_thing" required></textarea>
+      </div>
+      <div class="q">
+        <label for="in_the_way">Is there anything in the app you never use, or that gets in your way?</label>
+        <textarea id="in_the_way" name="in_the_way"></textarea>
+      </div>
+      <fieldset class="q">
+        <legend>Would you want it as an app from the App Store or Google Play, or is the web version fine?</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="store_app" value="Store app would be better"> A store app would be better</label>
+          <label class="opt"><input type="radio" name="store_app" value="Web version is fine"> The web version is fine</label>
+          <label class="opt"><input type="radio" name="store_app" value="No preference"> No preference</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section>
+      <h2>Only if it applies to you</h2>
+      <p class="sub">Skip anything that doesn't.</p>
+      <div class="q">
+        <label for="video_notes">If you shoot video: where did capture or upload cause problems? Do you edit in Premiere, CapCut or something else? Do you post the social drafts as written, or rewrite them?</label>
+        <textarea id="video_notes" name="video_notes"></textarea>
+      </div>
+      <div class="q">
+        <label for="audio_notes">If you work mostly with audio: how often were the speaker labels wrong? Is "upload audio, get ranked quotes" the whole job for you?</label>
+        <textarea id="audio_notes" name="audio_notes"></textarea>
+      </div>
+    </section>
+
+    <section>
+      <h2>Last two</h2>
+      <fieldset class="q">
+        <legend>Would you keep using it for another month, free, in return for honest feedback (and a short testimonial if you like it)?</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="another_month" value="Yes"> Yes</label>
+          <label class="opt"><input type="radio" name="another_month" value="Maybe"> Maybe</label>
+          <label class="opt"><input type="radio" name="another_month" value="No"> No</label>
+        </div>
+      </fieldset>
+      <div class="q">
+        <label for="referrals">Who else should try it? <span class="hint">Names and how to reach them, only if you're comfortable sharing.</span></label>
+        <textarea id="referrals" name="referrals"></textarea>
+      </div>
+    </section>
+
+    <button type="submit">Send my review</button>
+    <p class="foot">Your answers go only to Nick.</p>
+  </form>
+</div>
+</body>
+</html>
