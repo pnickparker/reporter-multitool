@@ -275,11 +275,25 @@ export async function uploadFile(
     failures += 1;
     successes = 0;
     pieceSize = Math.max(MIN_CHUNK_SIZE, Math.floor(pieceSize / 2));
+    // Not a dropped connection: the phone itself couldn't hand over the next piece of the file. On iOS this is
+    // usually a video picked from Photos that isn't fully downloaded from iCloud yet — retrying still helps,
+    // since the download can finish in the background, but "Connection dropped" would send a reporter who has
+    // full signal looking for a network problem that isn't there.
+    const localReadFailure = res.detail?.startsWith("couldn't read the recording") ?? false;
     const why = res.detail ? `: ${res.detail}` : "";
     if (!isRetryable(res.status) || failures > MAX_CHUNK_RETRIES) {
+      if (localReadFailure) {
+        throw new Error(
+          "Couldn't read the recording from this phone's storage. If it's a video picked from Photos, it may not be fully downloaded yet — open it in Photos, let it play all the way through, then come back and resume the upload.",
+        );
+      }
       throw new Error(`Upload to Drive failed partway through (error ${res.status || "network"}${why}) — try again`);
     }
-    onProgress(`Connection dropped — retrying (${failures} of ${MAX_CHUNK_RETRIES})${why ? ` (${res.detail})` : ""}…`);
+    onProgress(
+      localReadFailure
+        ? `Having trouble reading the recording from this phone — retrying (${failures} of ${MAX_CHUNK_RETRIES})…`
+        : `Connection dropped — retrying (${failures} of ${MAX_CHUNK_RETRIES})${why ? ` (${res.detail})` : ""}…`,
+    );
     await new Promise((resolve) => setTimeout(resolve, Math.min(2 ** failures, 15) * 1000));
     const check = await relayToDrive(uploadUrl, file.size, null);
     if (check.status === 308) start = check.received ?? 0;
